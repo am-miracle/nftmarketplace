@@ -4,13 +4,13 @@ A decentralized NFT marketplace built with Solidity, leveraging the latest smart
 
 ## Features
 
-- 🎨 **NFT Management**
+- **NFT Management**
   - Mint single and batch NFTs
   - Built-in royalty support (ERC2981)
   - Token URI management
   - Burn functionality
 
-- 💹 **Marketplace Operations**
+- **Marketplace Operations**
   - List NFTs for direct sale
   - Create timed auctions
   - Place and withdraw bids
@@ -29,8 +29,8 @@ A decentralized NFT marketplace built with Solidity, leveraging the latest smart
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/nft-marketplace.git
-cd nft-marketplace
+git clone git@github.com:am-miracle/nftmarketplace.git
+cd nftmarketplace
 ```
 
 2. Install Foundry dependencies:
