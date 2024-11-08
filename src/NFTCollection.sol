@@ -193,8 +193,10 @@ contract NFTCollection is
         metadata.name = name;
         metadata.description = description;
 
-        for (uint256 i = 0; i < attributeKeys.length; i++) {
-            metadata.attributes[attributeKeys[i]] = attributeValues[i];
+        unchecked {
+            for (uint256 i = 0; i < attributeKeys.length; ++i) {
+                metadata.attributes[attributeKeys[i]] = attributeValues[i];
+            }
         }
 
         emit MetadataUpdated(tokenId, name, description);
@@ -243,15 +245,6 @@ contract NFTCollection is
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
-    /**
-     * @dev Checks if a token exists
-     * @param tokenId ID of the token to check
-     * @return bool whether the token exists
-     */
-
-    function _tokenExists(uint256 tokenId) internal view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
-    }
 
     function _update(address to, uint256 tokenId, address auth)
         internal
@@ -263,6 +256,16 @@ contract NFTCollection is
 
     function _increaseBalance(address account, uint128 value) internal override(ERC721, ERC721Enumerable) {
         super._increaseBalance(account, value);
+    }
+
+    // Internal View functions
+    /**
+     * @dev Checks if a token exists
+     * @param tokenId ID of the token to check
+     * @return bool whether the token exists
+     */
+    function _tokenExists(uint256 tokenId) internal view returns (bool) {
+        return _ownerOf(tokenId) != address(0);
     }
 
     /*//////////////////////////////////////////////////////////////
