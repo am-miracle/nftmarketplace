@@ -9,11 +9,11 @@ import {IERC2981} from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-
 /**
  * @title NFTMarketplace
  * @dev A marketplace for NFTs with support for direct listings and auctions
  */
+
 contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     // Custom errors
     error NFTMarketplace__PriceMustBeAboveZero();
@@ -32,6 +32,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     error NFTMarketplace__InvalidCategory();
     error NFTMarketplace__CategoryExists();
     error NFTMarketplace__CollectionNotVerified();
+    error NFTMarketplace__FeeTooHigh();
 
     // Type declarations
     using Address for address payable;
@@ -48,37 +49,16 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         bytes32 category;
     }
 
-    struct Collection {
-        string name;
-        string description;
-        address creator;
-        bool isVerified;
-        uint256 floorPrice;
-        uint256 totalVolume;
-        uint256 totalSales;
-    }
-
-    struct Creator {
-        address creatorAddress;
-        bool isVerified;
-        uint256 totalSales;
-        uint256 totalVolume;
-    }
-
     struct Bid {
         address bidder;
         uint256 amount;
         uint256 timestamp;
     }
 
-    struct ListingKey {
+    struct ActiveListing {
         address nftAddress;
         uint256 tokenId;
-    }
-
-    struct TopCreatorAndCollectionData {
-        address creatorAndCollection;
-        uint256 volume;
+        bytes32 category;
     }
 
     // State variables
@@ -90,31 +70,57 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     mapping(address => mapping(uint256 => Listing)) private s_listings;
     mapping(address => uint256) private s_proceeds;
     mapping(address => mapping(uint256 => Bid[])) private s_bids;
-    mapping(address => Collection) private s_collections;
-    mapping(address => Creator) private s_creators;
-    mapping(bytes32 => uint256) private s_categoryStats;
-    mapping(address => uint256) private s_collectionStats;
-    mapping(bytes32 => ListingKey[]) private s_categoryListings;
+    mapping(bytes32 => ActiveListing[]) private s_categoryListings;
 
-    EnumerableSet.AddressSet private s_verifiedCollections;
-    EnumerableSet.AddressSet private s_verifiedCreators;
     EnumerableSet.Bytes32Set private s_categories;
 
     // Events
+
     event ItemListed(
-        address indexed seller, address indexed nftAddress, uint256 indexed tokenId, uint256 price, bool isAuction
+        address indexed seller,
+        address indexed nftAddress,
+        uint256 indexed tokenId,
+        uint256 price,
+        bool isAuction,
+        bytes32 category,
+        uint256 timestamp,
+        string collectionName,
+        address creator
     );
-    event ItemCanceled(address indexed seller, address indexed nftAddress, uint256 indexed tokenId);
-    event ItemBought(address indexed buyer, address indexed nftAddress, uint256 indexed tokenId, uint256 price);
-    event BidPlaced(address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount);
-    event BidWithdrawn(address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount);
-    event AuctionEnded(address indexed winner, address indexed nftAddress, uint256 indexed tokenId, uint256 amount);
-    event ProceedsWithdrawn(address indexed seller, uint256 amount);
-    event CategoryAdded(bytes32 indexed category, string name);
-    event CollectionVerified(address indexed collection);
-    event CreatorVerified(address indexed creator);
-    event CreatorUpdated(address indexed creator, uint256 totalSales, uint256 totalVolume);
-    event CollectionUpdated(address indexed collection, uint256 floorPrice, uint256 totalVolume, uint256 totalSales);
+
+    event ItemCanceled(address indexed seller, address indexed nftAddress, uint256 indexed tokenId, uint256 timestamp);
+
+    event ItemBought(
+        address indexed buyer,
+        address indexed nftAddress,
+        uint256 indexed tokenId,
+        uint256 price,
+        address seller,
+        uint256 timestamp,
+        uint256 royaltyAmount,
+        address royaltyReceiver
+    );
+
+    event BidPlaced(
+        address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount, uint256 timestamp
+    );
+
+    event BidWithdrawn(
+        address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount, uint256 timestamp
+    );
+
+    event AuctionEnded(
+        address indexed winner,
+        address indexed nftAddress,
+        uint256 indexed tokenId,
+        uint256 amount,
+        address seller,
+        uint256 timestamp
+    );
+
+    event ProceedsWithdrawn(address indexed seller, uint256 amount, uint256 timestamp);
+
+    event CategoryAdded(bytes32 indexed category, string name, uint256 timestamp);
 
     constructor(uint256 marketplaceFee) Ownable(msg.sender) {
         i_marketplaceFee = marketplaceFee;
@@ -147,18 +153,8 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
             revert NFTMarketplace__AlreadyListed();
         }
         if (nft.ownerOf(tokenId) != msg.sender) revert NFTMarketplace__NotOwner();
-
-        // Initialize collection if first time listing
-        _initializeCollection(nftAddress, price);
-
-        // Update collection floor price
-        Collection memory collection = s_collections[nftAddress];
-        if (price < collection.floorPrice) {
-            collection.floorPrice = price;
-        }
-
-        s_categoryStats[category]++;
-        s_collectionStats[nftAddress]++;
+        string memory collectionName = _getCollectionName(nftAddress);
+        address creator = _getCreator(nftAddress);
 
         s_listings[nftAddress][tokenId] = Listing({
             seller: msg.sender,
@@ -170,7 +166,11 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
             category: category
         });
 
-        emit ItemListed(msg.sender, nftAddress, tokenId, price, isAuction);
+        s_categoryListings[category].push(ActiveListing({nftAddress: nftAddress, tokenId: tokenId, category: category}));
+
+        emit ItemListed(
+            msg.sender, nftAddress, tokenId, price, isAuction, category, block.timestamp, collectionName, creator
+        );
     }
 
     /**
@@ -184,8 +184,9 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         if (listing.isAuction && listing.highestBid > 0) {
             revert NFTMarketplace__AuctionStillActive();
         }
+
         delete s_listings[nftAddress][tokenId];
-        emit ItemCanceled(msg.sender, nftAddress, tokenId);
+        emit ItemCanceled(msg.sender, nftAddress, tokenId, block.timestamp);
     }
 
     /**
@@ -199,26 +200,9 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         if (listing.isAuction) revert NFTMarketplace__AuctionNotActive();
         if (msg.value < listing.price) revert NFTMarketplace__PriceNotMet();
 
-        // // Handle royalties
-        // uint256 finalPrice = msg.value;
-        // (address royaltyReceiver, uint256 royaltyAmount) = IERC2981(nftAddress).royaltyInfo(tokenId, finalPrice);
-        // if (royaltyAmount > 0) {
-        //     payable(royaltyReceiver).sendValue(royaltyAmount);
-        //     finalPrice -= royaltyAmount;
-        // }
-
-        // // Calculate and transfer marketplace fee
-        // uint256 marketplaceFee = (finalPrice * i_marketplaceFee) / 10000;
-        // payable(owner()).sendValue(marketplaceFee);
-
-        // // Transfer remaining amount to seller
-        // uint256 sellerProceeds = finalPrice - marketplaceFee;
-        // s_proceeds[listing.seller] += sellerProceeds;
-        _processPaymentAndCalculateProceeds(nftAddress, tokenId, msg.value, listing.seller);
+        _processPaymentAndTransferNFT(nftAddress, tokenId, msg.value, listing.seller, msg.sender);
 
         delete s_listings[nftAddress][tokenId];
-        IERC721(nftAddress).safeTransferFrom(listing.seller, msg.sender, tokenId);
-        emit ItemBought(msg.sender, nftAddress, tokenId, msg.value);
     }
 
     /**
@@ -235,9 +219,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         }
 
         // Refund previous highest bidder
-        if (listing.highestBidder != address(0)) {
-            payable(listing.highestBidder).sendValue(listing.highestBid);
-        }
+        _handleBidPlacement(listing);
 
         // Update listing with new highest bid
         s_listings[nftAddress][tokenId].highestBidder = msg.sender;
@@ -246,7 +228,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         // Record bid history
         s_bids[nftAddress][tokenId].push(Bid({bidder: msg.sender, amount: msg.value, timestamp: block.timestamp}));
 
-        emit BidPlaced(msg.sender, nftAddress, tokenId, msg.value);
+        emit BidPlaced(msg.sender, nftAddress, tokenId, msg.value, block.timestamp);
     }
 
     /**
@@ -261,7 +243,144 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         if (block.timestamp >= listing.auctionEndTime) revert NFTMarketplace__AuctionEnded();
 
         uint256 bidAmount = listing.highestBid;
+        _handleBidCancellation(nftAddress, tokenId, listing);
 
+        emit BidWithdrawn(msg.sender, nftAddress, tokenId, bidAmount, block.timestamp);
+    }
+
+    /**
+     * @notice End an auction and transfer NFT to highest bidder
+     * @param nftAddress Address of the NFT contract
+     * @param tokenId Token ID of the NFT
+     */
+    function endAuction(address nftAddress, uint256 tokenId) external nonReentrant {
+        Listing memory listing = s_listings[nftAddress][tokenId];
+        if (!listing.isAuction) revert NFTMarketplace__AuctionNotActive();
+        if (block.timestamp <= listing.auctionEndTime) revert NFTMarketplace__AuctionStillActive();
+
+        if (listing.highestBidder != address(0)) {
+            // Handle royalties and Transfer NFT to winner
+            _processPaymentAndTransferNFT(
+                nftAddress, tokenId, listing.highestBid, listing.seller, listing.highestBidder
+            );
+
+            emit AuctionEnded(
+                listing.highestBidder, nftAddress, tokenId, listing.highestBid, listing.seller, block.timestamp
+            );
+        }
+
+        delete s_listings[nftAddress][tokenId];
+    }
+
+    /**
+     * @notice Withdraw proceeds from sales
+     */
+    function withdrawProceeds() external nonReentrant {
+        uint256 proceeds = s_proceeds[msg.sender];
+        if (proceeds <= 0) revert NFTMarketplace__NoProceeds();
+        s_proceeds[msg.sender] = 0;
+        payable(msg.sender).sendValue(proceeds);
+        emit ProceedsWithdrawn(msg.sender, proceeds, block.timestamp);
+    }
+
+    /**
+     * @notice Update price of a listing
+     * @param nftAddress Address of the NFT contract
+     * @param tokenId Token ID of the NFT
+     * @param newPrice New price in ETH
+     */
+    function updateListing(address nftAddress, uint256 tokenId, uint256 newPrice) external nonReentrant {
+        if (newPrice <= 0) revert NFTMarketplace__PriceMustBeAboveZero();
+        Listing memory listing = s_listings[nftAddress][tokenId];
+        if (listing.seller != msg.sender) revert NFTMarketplace__NotOwner();
+        if (listing.isAuction) revert NFTMarketplace__AuctionNotActive();
+
+        string memory collectionName = _getCollectionName(nftAddress);
+        address creator = _getCreator(nftAddress);
+
+        s_listings[nftAddress][tokenId].price = newPrice;
+        emit ItemListed(
+            msg.sender,
+            nftAddress,
+            tokenId,
+            newPrice,
+            listing.isAuction,
+            listing.category,
+            block.timestamp,
+            collectionName,
+            creator
+        );
+    }
+
+    /**
+     * @notice Add a new category
+     */
+    function addCategory(bytes32 category, string memory name) external onlyOwner {
+        s_categories.add(category);
+        emit CategoryAdded(category, name, block.timestamp);
+    }
+
+    // Admin functions
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Processes payment and calculates seller proceeds after royalties and fees and Transfer Nft
+     * @param nftAddress Address of the NFT contract
+     * @param tokenId Token ID of the NFT
+     * @param paymentAmount Total payment amount
+     * @param seller Address of the seller
+     *  @param buyer Address of the buyer
+     */
+    function _processPaymentAndTransferNFT(
+        address nftAddress,
+        uint256 tokenId,
+        uint256 paymentAmount,
+        address seller,
+        address buyer
+    ) internal {
+        // Handle royalties
+        (address royaltyReceiver, uint256 royaltyAmount) = IERC2981(nftAddress).royaltyInfo(tokenId, paymentAmount);
+
+        uint256 remainingAmount = paymentAmount;
+
+        if (royaltyAmount > 0) {
+            payable(royaltyReceiver).sendValue(royaltyAmount);
+            remainingAmount -= royaltyAmount;
+        }
+
+        // Calculate marketplace fee
+        uint256 marketplaceFee = (remainingAmount * i_marketplaceFee) / 10000;
+        payable(owner()).sendValue(marketplaceFee);
+
+        // Update seller proceeds
+        uint256 sellerProceeds = remainingAmount - marketplaceFee;
+        s_proceeds[seller] += sellerProceeds;
+
+        // Transfer NFT
+        IERC721(nftAddress).safeTransferFrom(seller, buyer, tokenId);
+
+        emit ItemBought(
+            buyer, nftAddress, tokenId, paymentAmount, seller, block.timestamp, royaltyAmount, royaltyReceiver
+        );
+    }
+
+    function _handleBidPlacement(Listing memory listing) internal {
+        if (listing.highestBidder != address(0)) {
+            payable(listing.highestBidder).sendValue(listing.highestBid);
+        }
+    }
+
+    function _handleBidCancellation(address nftAddress, uint256 tokenId, Listing memory listing) internal {
         // Find the previous highest bid
         Bid[] storage bids = s_bids[nftAddress][tokenId];
         uint256 previousHighestBid = 0;
@@ -288,256 +407,40 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
             bids.pop();
         }
 
-        // Refund the cancelled bid
-        payable(msg.sender).sendValue(bidAmount);
-
-        emit BidWithdrawn(msg.sender, nftAddress, tokenId, bidAmount);
+        // refund the cancelled bid
+        payable(msg.sender).sendValue(listing.highestBid);
     }
 
     /**
-     * @notice End an auction and transfer NFT to highest bidder
-     * @param nftAddress Address of the NFT contract
-     * @param tokenId Token ID of the NFT
+     * @dev Gets the collection name from the NFT contract
+     * @param nftAddress The address of the NFT contract
+     * @return The name of the collection
      */
-    function endAuction(address nftAddress, uint256 tokenId) external nonReentrant {
-        Listing memory listing = s_listings[nftAddress][tokenId];
-        if (!listing.isAuction) revert NFTMarketplace__AuctionNotActive();
-        if (block.timestamp <= listing.auctionEndTime) revert NFTMarketplace__AuctionStillActive();
-
-        if (listing.highestBidder != address(0)) {
-            // Handle royalties
-            _processPaymentAndCalculateProceeds(nftAddress, tokenId, listing.highestBid, listing.seller);
-
-            // Transfer NFT to winner
-            IERC721(nftAddress).safeTransferFrom(listing.seller, listing.highestBidder, tokenId);
-            emit AuctionEnded(listing.highestBidder, nftAddress, tokenId, listing.highestBid);
-        }
-
-        delete s_listings[nftAddress][tokenId];
+    function _getCollectionName(address nftAddress) internal view returns (string memory) {
+        // Using IERC721Metadata interface to get the collection name
+        return IERC721Metadata(nftAddress).name();
     }
 
     /**
-     * @notice Withdraw proceeds from sales
+     * @dev Gets the creator address from the NFT contract
+     * @param nftAddress The address of the NFT contract
+     * @return The address of the creator
      */
-    function withdrawProceeds() external nonReentrant {
-        uint256 proceeds = s_proceeds[msg.sender];
-        if (proceeds <= 0) revert NFTMarketplace__NoProceeds();
-        s_proceeds[msg.sender] = 0;
-        payable(msg.sender).sendValue(proceeds);
-        emit ProceedsWithdrawn(msg.sender, proceeds);
-    }
-
-    /**
-     * @notice Update price of a listing
-     * @param nftAddress Address of the NFT contract
-     * @param tokenId Token ID of the NFT
-     * @param newPrice New price in ETH
-     */
-    function updateListing(address nftAddress, uint256 tokenId, uint256 newPrice) external nonReentrant {
-        if (newPrice <= 0) revert NFTMarketplace__PriceMustBeAboveZero();
-        Listing memory listing = s_listings[nftAddress][tokenId];
-        if (listing.seller != msg.sender) revert NFTMarketplace__NotOwner();
-        if (listing.isAuction) revert NFTMarketplace__AuctionNotActive();
-
-        s_listings[nftAddress][tokenId].price = newPrice;
-        emit ItemListed(msg.sender, nftAddress, tokenId, newPrice, false);
-    }
-
-    /**
-     * @notice Register and verify a collection
-     */
-    function registerCollection(address collection, string calldata name, string calldata description, address creator)
-        external
-        onlyOwner
-    {
-        s_collections[collection] = Collection({
-            name: name,
-            description: description,
-            isVerified: true,
-            floorPrice: 0,
-            totalVolume: 0,
-            totalSales: 0,
-            creator: creator
-        });
-
-        // Initialize or update creator data
-        Creator memory creatorData = s_creators[creator];
-        if (creatorData.creatorAddress == address(0)) {
-            creatorData.creatorAddress = creator;
-        }
-
-        s_verifiedCollections.add(collection);
-        emit CollectionVerified(collection);
-    }
-
-    /**
-     * @notice Add a new category
-     */
-    function addCategory(bytes32 category, string calldata name) external onlyOwner {
-        if (s_categories.contains(category)) revert NFTMarketplace__CategoryExists();
-        s_categories.add(category);
-        emit CategoryAdded(category, name);
-    }
-
-    /**
-     * @notice Verify a creator
-     */
-    function verifyCreator(address creator) external onlyOwner {
-        s_creators[creator].isVerified = true;
-        s_verifiedCreators.add(creator);
-        emit CreatorVerified(creator);
-    }
-
-    // Admin functions
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    function unpause() external onlyOwner {
-        _unpause();
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                           INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-    /**
-     * @dev Handles royalty calculations and payments
-     * @param nftAddress Address of the NFT contract
-     * @param tokenId Token ID of the NFT
-     * @param amount Total amount to calculate royalties from
-     * @return remainingAmount Amount after royalty deduction
-     */
-    function _handleRoyalties(address nftAddress, uint256 tokenId, uint256 amount) internal returns (uint256) {
-        (address royaltyReceiver, uint256 royaltyAmount) = IERC2981(nftAddress).royaltyInfo(tokenId, amount);
-        if (royaltyAmount > 0) {
-            payable(royaltyReceiver).sendValue(royaltyAmount);
-            return amount - royaltyAmount;
-        }
-        return amount;
-    }
-
-    /**
-     * @dev Calculates and transfers marketplace fee
-     * @param amount Amount to calculate fee from
-     * @return remainingAmount Amount after fee deduction
-     */
-    function _handleMarketplaceFee(uint256 amount) internal returns (uint256) {
-        uint256 marketplaceFee = (amount * i_marketplaceFee) / 10000;
-        payable(owner()).sendValue(marketplaceFee);
-        return amount - marketplaceFee;
-    }
-
-    /**
-     * @dev Updates seller proceeds in storage
-     * @param seller Address of the seller
-     * @param amount Amount to add to seller's proceeds
-     */
-    function _updateSellerProceeds(address seller, uint256 amount) internal {
-        s_proceeds[seller] += amount;
-    }
-
-    /**
-     * @dev Processes payment and calculates seller proceeds after royalties and fees
-     * @param nftAddress Address of the NFT contract
-     * @param tokenId Token ID of the NFT
-     * @param paymentAmount Total payment amount
-     * @param seller Address of the seller
-     * @return sellerProceeds Amount to be transferred to the seller
-     */
-    function _processPaymentAndCalculateProceeds(
-        address nftAddress,
-        uint256 tokenId,
-        uint256 paymentAmount,
-        address seller
-    ) internal returns (uint256) {
-        // Handle royalties
-        uint256 remainingAfterRoyalties = _handleRoyalties(nftAddress, tokenId, paymentAmount);
-
-        // Handle marketplace fee
-        uint256 remainingAfterFees = _handleMarketplaceFee(remainingAfterRoyalties);
-
-        // Update Collections Stats
-        Collection memory collection = s_collections[nftAddress];
-        collection.totalSales++;
-        collection.totalVolume += paymentAmount;
-
-        // Update Creator stats
+    function _getCreator(address nftAddress) internal view returns (address) {
+        // First check: Owner of token 0 (common pattern for creator-owned collections)
         address creator = IERC721(nftAddress).ownerOf(0);
-        Creator memory creatorData = s_creators[creator];
-        creatorData.totalSales++;
-        creatorData.totalVolume += paymentAmount;
-
-        // Update category stats
-        bytes32 category = s_listings[nftAddress][tokenId].category;
-        s_categoryStats[category]--;
-        s_collectionStats[nftAddress]--;
-
-        // Update seller proceeds
-        _updateSellerProceeds(seller, remainingAfterFees);
-
-        emit CreatorUpdated(creator, creatorData.totalSales, creatorData.totalVolume);
-        emit CollectionUpdated(nftAddress, collection.floorPrice, collection.totalVolume, collection.totalSales);
-
-        return remainingAfterFees;
-    }
-
-    function _initializeCollection(address collection, uint256 price) internal {
-        Collection storage collectionData = s_collections[collection];
-        if (collectionData.floorPrice == 0) {
-            collectionData.floorPrice = price;
-            try IERC721Metadata(collection).name() returns (string memory name) {
-                collectionData.name = name;
-            } catch {
-                collectionData.name = "";
-            }
+        if (creator != address(0)) {
+            return creator;
         }
-    }
 
-    /*//////////////////////////////////////////////////////////////
-                           PRIVATE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function buildMaxHeap(TopCreatorAndCollectionData[] memory heap, uint256 size) private pure {
-        unchecked {
-            for (uint256 i = size / 2; i > 0; --i) {
-                heapify(heap, i, size);
-            }
-        }
-    }
-
-    function heapify(TopCreatorAndCollectionData[] memory heap, uint256 i, uint256 size) private pure {
-        uint256 largest = i;
-        uint256 left = i * 2;
-        uint256 right = i * 2 + 1;
-
-        unchecked {
-            if (left <= size && heap[left - 1].volume > heap[largest - 1].volume) {
-                largest = left;
-            }
-            if (right <= size && heap[right - 1].volume > heap[largest - 1].volume) {
-                largest = right;
-            }
-            if (largest != i) {
-                (heap[i - 1], heap[largest - 1]) = (heap[largest - 1], heap[i - 1]);
-                heapify(heap, largest, size);
-            }
-        }
-    }
-
-    function extractMax(TopCreatorAndCollectionData[] memory heap, uint256 size)
-        private
-        pure
-        returns (TopCreatorAndCollectionData memory max)
-    {
-        max = heap[0];
-        heap[0] = heap[size - 1];
-        heapify(heap, 1, size - 1);
-        return max;
+        // Second check: Contract owner/deployer (fallback)
+        return Ownable(nftAddress).owner();
     }
 
     /*//////////////////////////////////////////////////////////////
                             GETTER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
     function getListing(address nftAddress, uint256 tokenId) external view returns (Listing memory) {
         return s_listings[nftAddress][tokenId];
     }
@@ -548,128 +451,6 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
 
     function getBidHistory(address nftAddress, uint256 tokenId) external view returns (Bid[] memory) {
         return s_bids[nftAddress][tokenId];
-    }
-
-    /**
-     * @notice Get trending collections sorted by volume
-     */
-    function getTrendingCollections(uint256 limit)
-        external
-        view
-        returns (address[] memory collections, Collection[] memory collectionData)
-    {
-        uint256 totalCollections = s_verifiedCollections.length();
-        limit = limit > totalCollections ? totalCollections : limit;
-
-        // Initialize return arrays
-        collections = new address[](limit);
-        collectionData = new Collection[](limit);
-
-        // Use a heap data structure to efficiently find the top collections
-        TopCreatorAndCollectionData[] memory topCollections = new TopCreatorAndCollectionData[](totalCollections);
-
-        unchecked {
-            // Populate the heap with all collections and their volumes
-            for (uint256 i; i < totalCollections; i++) {
-                address collection = s_verifiedCollections.at(i);
-                topCollections[i] = TopCreatorAndCollectionData(collection, s_collections[collection].totalVolume);
-            }
-
-            // Build the max heap
-            buildMaxHeap(topCollections, totalCollections);
-
-            // Extract the top `limit` collections from the heap
-            for (uint256 i; i < limit; i++) {
-                TopCreatorAndCollectionData memory top = extractMax(topCollections, totalCollections - i);
-                collections[i] = top.creatorAndCollection;
-                collectionData[i] = s_collections[top.creatorAndCollection];
-            }
-        }
-
-        return (collections, collectionData);
-    }
-
-    /**
-     * @notice Get top creators by volume
-     */
-    function getTopCreators(uint256 limit)
-        external
-        view
-        returns (address[] memory creators, Creator[] memory creatorData)
-    {
-        uint256 totalCreators = s_verifiedCreators.length();
-        limit = limit > totalCreators ? totalCreators : limit;
-
-        // Initialize return arrays
-        creators = new address[](limit);
-        creatorData = new Creator[](limit);
-
-        // Use a heap data structure to efficiently find the top creators
-        TopCreatorAndCollectionData[] memory topCreators = new TopCreatorAndCollectionData[](totalCreators);
-
-        unchecked {
-            // Populate the heap with all creators and their volumes
-            for (uint256 i; i < totalCreators; i++) {
-                address creator = s_verifiedCreators.at(i);
-                topCreators[i] = TopCreatorAndCollectionData(creator, s_creators[creator].totalVolume);
-            }
-
-            // Build the max heap
-            buildMaxHeap(topCreators, totalCreators);
-
-            // Extract the top `limit` creators from the heap
-            for (uint256 i; i < limit; i++) {
-                TopCreatorAndCollectionData memory top = extractMax(topCreators, totalCreators - i);
-                creators[i] = top.creatorAndCollection;
-                creatorData[i] = s_creators[top.creatorAndCollection];
-            }
-        }
-
-        return (creators, creatorData);
-    }
-
-    /**
-     * @notice Get listings by category
-     */
-    function getListingsByCategory(bytes32 category, uint256 offset, uint256 limit)
-        external
-        view
-        returns (
-            address[] memory sellers,
-            uint256[] memory prices,
-            address[] memory nftAddresses,
-            uint256[] memory tokenIds,
-            uint256 total
-        )
-    {
-        total = s_categoryStats[category];
-
-        if (offset >= total || limit == 0) {
-            return (new address[](0), new uint256[](0), new address[](0), new uint256[](0), total);
-        }
-
-        uint256 length;
-        unchecked {
-            uint256 remaining = total - offset;
-            length = remaining < limit ? remaining : limit;
-        }
-
-        sellers = new address[](length);
-        prices = new uint256[](length);
-        nftAddresses = new address[](length);
-        tokenIds = new uint256[](length);
-
-        unchecked {
-            for (uint256 i; i < length; ++i) {
-                ListingKey memory key = s_categoryListings[category][offset + i];
-                Listing storage listing = s_listings[key.nftAddress][key.tokenId];
-
-                sellers[i] = listing.seller;
-                prices[i] = listing.price;
-                nftAddresses[i] = key.nftAddress;
-                tokenIds[i] = key.tokenId;
-            }
-        }
     }
 
     /**
@@ -686,19 +467,160 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         return categories;
     }
 
-    function getCollection(address collection) external view returns (Collection memory) {
-        return s_collections[collection];
+    /**
+     * @notice Get listings by category with pagination
+     */
+    function getListingsByCategory(bytes32 category, uint256 offset, uint256 limit)
+        external
+        view
+        returns (
+            address[] memory sellers,
+            uint256[] memory prices,
+            address[] memory nftAddresses,
+            uint256[] memory tokenIds
+        )
+    {
+        ActiveListing[] storage categoryListings = s_categoryListings[category];
+        uint256 totalLength = categoryListings.length;
+
+        if (offset >= totalLength) {
+            return (new address[](0), new uint256[](0), new address[](0), new uint256[](0));
+        }
+
+        // Calculate actual length considering offset and limit
+        uint256 end = (offset + limit) > totalLength ? totalLength : (offset + limit);
+        uint256 resultLength = end - offset;
+
+        // Initialize arrays
+        sellers = new address[](resultLength);
+        prices = new uint256[](resultLength);
+        nftAddresses = new address[](resultLength);
+        tokenIds = new uint256[](resultLength);
+
+        // Populate arrays
+        for (uint256 i = 0; i < resultLength; i++) {
+            ActiveListing memory activeListing = categoryListings[offset + i];
+            Listing memory listing = s_listings[activeListing.nftAddress][activeListing.tokenId];
+
+            if (listing.seller != address(0)) {
+                sellers[i] = listing.seller;
+                prices[i] = listing.price;
+                nftAddresses[i] = activeListing.nftAddress;
+                tokenIds[i] = activeListing.tokenId;
+            }
+        }
     }
 
-    function getCreator(address creator) external view returns (Creator memory) {
-        return s_creators[creator];
+    /**
+     * @notice Get active auctions
+     */
+    function getActiveAuctions()
+        external
+        view
+        returns (
+            address[] memory nftAddresses,
+            uint256[] memory tokenIds,
+            address[] memory sellers,
+            uint256[] memory prices,
+            uint256[] memory endTimes,
+            uint256[] memory highestBids
+        )
+    {
+        // First, count active auctions
+        uint256 activeAuctionsCount = 0;
+        bytes32[] memory categories = this.getCategories();
+
+        for (uint256 c = 0; c < categories.length; c++) {
+            ActiveListing[] storage categoryListings = s_categoryListings[categories[c]];
+            for (uint256 i = 0; i < categoryListings.length; i++) {
+                Listing memory listing = s_listings[categoryListings[i].nftAddress][categoryListings[i].tokenId];
+                if (listing.isAuction && block.timestamp <= listing.auctionEndTime) {
+                    activeAuctionsCount++;
+                }
+            }
+        }
+
+        // Initialize return arrays
+        nftAddresses = new address[](activeAuctionsCount);
+        tokenIds = new uint256[](activeAuctionsCount);
+        sellers = new address[](activeAuctionsCount);
+        prices = new uint256[](activeAuctionsCount);
+        endTimes = new uint256[](activeAuctionsCount);
+        highestBids = new uint256[](activeAuctionsCount);
+
+        // Populate arrays
+        uint256 currentIndex = 0;
+        for (uint256 c = 0; c < categories.length; c++) {
+            ActiveListing[] storage categoryListings = s_categoryListings[categories[c]];
+            for (uint256 i = 0; i < categoryListings.length; i++) {
+                Listing memory listing = s_listings[categoryListings[i].nftAddress][categoryListings[i].tokenId];
+                if (listing.isAuction && block.timestamp <= listing.auctionEndTime) {
+                    nftAddresses[currentIndex] = categoryListings[i].nftAddress;
+                    tokenIds[currentIndex] = categoryListings[i].tokenId;
+                    sellers[currentIndex] = listing.seller;
+                    prices[currentIndex] = listing.price;
+                    endTimes[currentIndex] = listing.auctionEndTime;
+                    highestBids[currentIndex] = listing.highestBid;
+                    currentIndex++;
+                }
+            }
+        }
     }
 
-    function getCategoryStats(bytes32 category) external view returns (uint256) {
-        return s_categoryStats[category];
+    /**
+     * @notice Get marketplace statistics
+     */
+    function getMarketplaceStats()
+        external
+        view
+        returns (uint256 totalActiveListings, uint256 totalAuctions, uint256 totalCategories)
+    {
+        totalCategories = s_categories.length();
+        bytes32[] memory categories = this.getCategories();
+
+        for (uint256 c = 0; c < categories.length; c++) {
+            ActiveListing[] storage categoryListings = s_categoryListings[categories[c]];
+            for (uint256 i = 0; i < categoryListings.length; i++) {
+                Listing memory listing = s_listings[categoryListings[i].nftAddress][categoryListings[i].tokenId];
+                if (listing.seller != address(0)) {
+                    totalActiveListings++;
+                    if (listing.isAuction) {
+                        totalAuctions++;
+                    }
+                }
+            }
+        }
     }
 
-    function getCollectionStats(address collection) external view returns (uint256) {
-        return s_collectionStats[collection];
+    /**
+     * @notice Get user activity (listings and bids)
+     */
+    function getUserActivity(address user)
+        external
+        view
+        returns (uint256 activeListings, uint256 activeBids, uint256 availableProceeds)
+    {
+        availableProceeds = s_proceeds[user];
+        bytes32[] memory categories = this.getCategories();
+
+        for (uint256 c = 0; c < categories.length; c++) {
+            ActiveListing[] storage categoryListings = s_categoryListings[categories[c]];
+            for (uint256 i = 0; i < categoryListings.length; i++) {
+                Listing memory listing = s_listings[categoryListings[i].nftAddress][categoryListings[i].tokenId];
+                if (listing.seller == user) {
+                    activeListings++;
+                }
+                if (listing.highestBidder == user) {
+                    activeBids++;
+                }
+            }
+        }
+    }
+
+    /**
+     * @notice Get marketplace fee
+     */
+    function getMarketplaceFee() external view returns (uint256) {
+        return i_marketplaceFee;
     }
 }

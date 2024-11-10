@@ -97,21 +97,13 @@ contract NFTCollection is
      * @param royaltyFee Royalty fee in basis points (100 = 1%)
      */
     function mint(address to, string calldata _tokenURI, uint96 royaltyFee)
-        public
+        external
         onlyOwner
         whenNotPaused
         nonReentrant
         returns (uint256)
     {
-        if (to == address(0)) revert NFTCollection__MintToZeroAddress();
-        if (royaltyFee > MAX_ROYALTY_FEE) revert NFTCollection__InvalidRoyaltyFee();
-        if (_nextTokenId >= i_maxSupply) revert NFTCollection__MaxSupplyReached();
-
-        uint256 tokenId = _nextTokenId++;
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, _tokenURI);
-        _setTokenRoyalty(tokenId, to, royaltyFee);
-
+        uint256 tokenId = _mintSingle(to, _tokenURI, royaltyFee);
         emit TokenMinted(to, tokenId, _tokenURI, royaltyFee);
         return tokenId;
     }
@@ -123,10 +115,8 @@ contract NFTCollection is
      * @param royaltyFee Royalty fee in basis points (100 = 1%)
      */
     function batchMint(address to, string[] calldata tokenURIs, uint96 royaltyFee)
-        public
+        external
         onlyOwner
-        whenNotPaused
-        nonReentrant
         returns (uint256[] memory)
     {
         uint256 length = tokenURIs.length;
@@ -136,7 +126,7 @@ contract NFTCollection is
         uint256[] memory tokenIds = new uint256[](length);
         unchecked {
             for (uint256 i = 0; i < length; ++i) {
-                tokenIds[i] = mint(to, tokenURIs[i], royaltyFee);
+                tokenIds[i] = _mintSingle(to, tokenURIs[i], royaltyFee);
             }
         }
 
@@ -241,6 +231,19 @@ contract NFTCollection is
     /*//////////////////////////////////////////////////////////////
                            INTERNAL AND INTERNAL VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _mintSingle(address to, string calldata _tokenURI, uint96 royaltyFee) internal returns (uint256) {
+        if (to == address(0)) revert NFTCollection__MintToZeroAddress();
+        if (royaltyFee > MAX_ROYALTY_FEE) revert NFTCollection__InvalidRoyaltyFee();
+        if (_nextTokenId >= i_maxSupply) revert NFTCollection__MaxSupplyReached();
+
+        uint256 tokenId = _nextTokenId++;
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
+        _setTokenRoyalty(tokenId, to, royaltyFee);
+
+        return tokenId;
+    }
 
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;

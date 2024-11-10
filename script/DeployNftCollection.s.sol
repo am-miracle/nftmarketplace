@@ -9,17 +9,17 @@ contract DeployNftCollection is Script {
     function run() external returns (NFTCollection, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         (
+            uint256 deployerKey,
             ,
             string memory nftName,
             string memory nftSymbol,
-            string memory nftBaseUri,
+            string memory baseTokenURI,
             uint256 maxSupply,
-            uint256 deployerKey,
         ) = helperConfig.activeNetworkConfig();
 
         vm.startBroadcast(deployerKey);
 
-        NFTCollection nftCollection = new NFTCollection(nftName, nftSymbol, nftBaseUri, maxSupply);
+        NFTCollection nftCollection = new NFTCollection(nftName, nftSymbol, baseTokenURI, maxSupply);
 
         vm.stopBroadcast();
 

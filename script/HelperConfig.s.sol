@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 
 /**
  * @title HelperConfig
@@ -9,13 +9,13 @@ import {Script} from "forge-std/Script.sol";
  */
 contract HelperConfig is Script {
     struct NetworkConfig {
+        uint256 deployerKey;
         uint256 marketplaceFee; // in basis points (e.g., 250 = 2.5%)
         string nftName;
         string nftSymbol;
         string nftBaseUri;
         uint256 maxSupply;
         uint96 defaultRoyaltyFee; // in basis points
-        uint256 deployerKey;
     }
 
     uint256 public constant DEFAULT_ANVIL_DEPLOYER_KEY =
@@ -39,43 +39,40 @@ contract HelperConfig is Script {
 
     function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
         return NetworkConfig({
+            deployerKey: vm.envUint("PRIVATE_KEY"),
             marketplaceFee: DEFAULT_MARKETPLACE_FEE,
             nftName: "Neflex",
             nftSymbol: "NFLX",
             nftBaseUri: "ipfs://QmYourBaseUri/",
             maxSupply: DEFAULT_MAX_SUPPLY,
-            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE
         });
     }
 
     function getMainnetEthConfig() public view returns (NetworkConfig memory) {
         return NetworkConfig({
+            deployerKey: vm.envUint("PRIVATE_KEY"),
             marketplaceFee: DEFAULT_MARKETPLACE_FEE,
             nftName: "Neflex",
             nftSymbol: "NFLX",
             nftBaseUri: "ipfs://QmYourBaseUri/",
             maxSupply: DEFAULT_MAX_SUPPLY,
-            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE
         });
     }
 
-    function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
+    function getOrCreateAnvilEthConfig() public view returns (NetworkConfig memory anvilConfig) {
         if (activeNetworkConfig.deployerKey != 0) {
             return activeNetworkConfig;
         }
-        vm.startBroadcast();
-        NetworkConfig memory anvilConfig = NetworkConfig({
+        return NetworkConfig({
+            deployerKey: DEFAULT_ANVIL_DEPLOYER_KEY,
             marketplaceFee: DEFAULT_MARKETPLACE_FEE,
             nftName: "Neflex",
             nftSymbol: "NFLX",
-            nftBaseUri: "ipfs://QmYourBaseUri/",
+            nftBaseUri: "https://ipfs.io/ipfs/QmYaDcC1nCpNeQzoEF2tQz7gyu1WqpKKtZfZyK6cP3fcDR",
             maxSupply: DEFAULT_MAX_SUPPLY,
-            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE,
-            deployerKey: DEFAULT_ANVIL_DEPLOYER_KEY
+            defaultRoyaltyFee: DEFAULT_ROYALTY_FEE
         });
-        vm.stopBroadcast();
-        return anvilConfig;
     }
 }
