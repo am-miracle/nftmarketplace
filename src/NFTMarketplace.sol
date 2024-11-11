@@ -33,7 +33,6 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
 
     // Type declarations
     using Address for address payable;
-    using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     struct Listing {
