@@ -4,27 +4,17 @@ pragma solidity ^0.8.20;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import {ERC721Pausable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 /**
  * @title NFTCollection
  * @dev Enhanced NFT contract with advanced features including metadata management,
  *      royalties, enumeration, and pausable functionality
  */
-contract NFTCollection is
-    ERC721,
-    ERC721URIStorage,
-    ERC721Enumerable,
-    ERC721Pausable,
-    ERC2981,
-    Ownable,
-    ReentrancyGuard
-{
+contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, Ownable, ReentrancyGuard {
     // Custom errors
     error NFTCollection__InvalidArrayLength();
     error NFTCollection__MintToZeroAddress();
@@ -99,7 +89,6 @@ contract NFTCollection is
     function mint(address to, string calldata _tokenURI, uint96 royaltyFee)
         external
         onlyOwner
-        whenNotPaused
         nonReentrant
         returns (uint256)
     {
@@ -132,15 +121,6 @@ contract NFTCollection is
 
         emit BatchTokensMinted(to, tokenIds, royaltyFee);
         return tokenIds;
-    }
-
-    /**
-     * @dev Burns a token
-     * @param tokenId ID of the token to burn
-     */
-    function burn(uint256 tokenId) public virtual onlyTokenApprovedOrOwner(tokenId) {
-        _burn(tokenId);
-        emit TokenBurned(tokenId);
     }
 
     /**
@@ -202,15 +182,6 @@ contract NFTCollection is
         emit TokenURILocked(tokenId);
     }
 
-    // Pause/Unpause functionality
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
-    }
-
     // Required overrides
 
     /*//////////////////////////////////////////////////////////////
@@ -251,7 +222,7 @@ contract NFTCollection is
 
     function _update(address to, uint256 tokenId, address auth)
         internal
-        override(ERC721, ERC721Enumerable, ERC721Pausable)
+        override(ERC721, ERC721Enumerable)
         returns (address)
     {
         return super._update(to, tokenId, auth);

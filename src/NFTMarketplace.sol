@@ -30,9 +30,6 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     error NFTMarketplace__AuctionStillActive();
     error NFTMarketplace__NotHighestBidder();
     error NFTMarketplace__InvalidCategory();
-    error NFTMarketplace__CategoryExists();
-    error NFTMarketplace__CollectionNotVerified();
-    error NFTMarketplace__FeeTooHigh();
 
     // Type declarations
     using Address for address payable;
