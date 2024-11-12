@@ -12,7 +12,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 /**
  * @title NFTCollection
  * @dev Enhanced NFT contract with advanced features including metadata management,
- *      royalties, enumeration, and pausable functionality
+ *      royalties,
  */
 contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, Ownable, ReentrancyGuard {
     // Custom errors
@@ -49,7 +49,7 @@ contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, O
 
     // Events
     event TokenMinted(address indexed to, uint256 indexed tokenId, string tokenURI, uint96 royaltyFee);
-    event BatchTokensMinted(address indexed to, uint256[] tokenIds, uint96 royaltyFee);
+    event BatchTokensMinted(address indexed to, uint256[] tokenIds, string[] tokenURIs, uint96 royaltyFee);
     event BaseURIUpdated(string newBaseURI);
     event BaseURILocked();
     event TokenURILocked(uint256 indexed tokenId);
@@ -119,7 +119,7 @@ contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, O
             }
         }
 
-        emit BatchTokensMinted(to, tokenIds, royaltyFee);
+        emit BatchTokensMinted(to, tokenIds, tokenURIs, royaltyFee);
         return tokenIds;
     }
 
@@ -152,6 +152,7 @@ contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, O
         uint256 tokenId,
         string memory name,
         string memory description,
+        string memory image,
         string[] memory attributeKeys,
         string[] memory attributeValues
     ) public onlyOwner {
@@ -162,6 +163,7 @@ contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, O
         TokenMetadata storage metadata = _tokenMetadata[tokenId];
         metadata.name = name;
         metadata.description = description;
+        metadata.image = image;
 
         unchecked {
             for (uint256 i = 0; i < attributeKeys.length; ++i) {
@@ -255,6 +257,10 @@ contract NFTCollection is ERC721, ERC721URIStorage, ERC721Enumerable, ERC2981, O
 
     function isBaseURILocked() public view returns (bool) {
         return _baseURILocked;
+    }
+
+    function getBaseTokenURI() public view returns (string memory) {
+        return _baseTokenURI;
     }
 
     function isTokenURILocked(uint256 tokenId) public view returns (bool) {

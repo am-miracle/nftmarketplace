@@ -619,4 +619,12 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     function getMarketplaceFee() external view returns (uint256) {
         return i_marketplaceFee;
     }
+
+    function getCollectionName(address nftAddress) external view returns (string memory) {
+        return _getCollectionName(nftAddress);
+    }
+
+    function getCreator(address nftAddress) external view returns (address) {
+        return _getCreator(nftAddress);
+    }
 }
