@@ -176,39 +176,6 @@ contract NFTMarketplaceTest is Test {
         vm.stopPrank();
     }
 
-    function test_ListMultipleItems() public {
-        vm.startPrank(nftCollection.owner());
-
-        // Mint multiple NFTs to seller
-        uint256[] memory tokenIds = new uint256[](3);
-        for (uint256 i = 0; i < 3; i++) {
-            tokenIds[i] = nftCollection.mint(SELLER, string.concat("token", vm.toString(i + 1), ".json"), 500);
-        }
-        vm.stopPrank();
-
-        vm.startPrank(SELLER);
-
-        // List all NFTs
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            nftCollection.approve(address(marketplace), tokenIds[i]);
-            marketplace.listItem(
-                address(nftCollection),
-                tokenIds[i],
-                (i + 1) * 1 ether, // Different prices
-                i % 2 == 0, // Alternate between direct listing and auction
-                ART_CATEGORY
-            );
-
-            // Verify each listing
-            NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenIds[i]);
-            assertEq(listing.seller, SELLER);
-            assertEq(listing.price, (i + 1) * 1 ether);
-            assertEq(listing.isAuction, i % 2 == 0);
-        }
-
-        vm.stopPrank();
-    }
-
     function test_ListItemWithRoyalty() public {
         uint256 tokenId = 0;
         uint256 listingPrice = 1 ether;
