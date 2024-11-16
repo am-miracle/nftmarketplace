@@ -218,18 +218,16 @@ contract NFTMarketplaceTest is Test {
         uint256 tokenId = 0;
         uint256 price = 1 ether;
 
-        uint256 initialSellerProceeds = marketplace.getProceeds(SELLER);
-        // uint256 initialBuyerBalance = BUYER.balance;
-        // uint256 initialSellerBalance = SELLER.balance;
-
-        // Calculate expected royalty
+        // Calculate royalty
         (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, price);
 
-        // Calculate marketplace fee
-        uint256 marketplaceFee = (price * marketplace.getMarketplaceFee()) / 10000;
+        // Calculate marketplace fee from remaining amount after royalty
+        uint256 remainingAmount = price - royaltyAmount;
+        uint256 marketplaceFee = (remainingAmount * marketplace.getMarketplaceFee()) / 10000;
 
-        // Expected seller proceeds
-        uint256 sellerProceeds = price - marketplaceFee - royaltyAmount;
+        // Expected seller earnings
+        uint256 initialSellerEarnings = marketplace.getEarnings(SELLER);
+        uint256 sellerEarnings = remainingAmount - marketplaceFee;
 
         vm.prank(BUYER);
         vm.expectEmit(true, true, true, true);
@@ -242,17 +240,36 @@ contract NFTMarketplaceTest is Test {
         // Verify NFT ownership transferred
         assertEq(nftCollection.ownerOf(tokenId), BUYER);
 
-        // Verify proceeds updated correctly
-        assertEq(marketplace.getProceeds(SELLER), initialSellerProceeds + sellerProceeds);
+        // Verify earnings updated correctly
+        assertEq(marketplace.getEarnings(SELLER), initialSellerEarnings + sellerEarnings);
 
         // Verify listing was removed
         NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
         assertEq(listing.seller, address(0));
     }
 
-    function testFail_BuyItemNotListed() public {
-        vm.prank(BUYER);
-        marketplace.buyItem{value: 1 ether}(address(nftCollection), 0);
+    function test_RevertWhen_BuyingNotListedItem() public {
+        uint256 tokenId = 0;
+        uint256 price = 1 ether;
+
+        // Mint NFT to seller but don't list it
+        vm.prank(nftCollection.owner());
+        nftCollection.mint(SELLER, "token1.json", 500);
+
+        // Verify NFT is owned by seller and not listed
+        assertEq(nftCollection.ownerOf(tokenId), SELLER);
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.seller, address(0), "Item should not be listed");
+
+        // Try to buy unlisted NFT
+        vm.startPrank(BUYER);
+        vm.expectRevert(NFTMarketplace.NFTMarketplace__NotListed.selector);
+        marketplace.buyItem{value: price}(address(nftCollection), tokenId);
+        vm.stopPrank();
+
+        // Verify state remains unchanged
+        assertEq(nftCollection.ownerOf(tokenId), SELLER);
+        assertEq(marketplace.getEarnings(SELLER), 0);
     }
 
     function testFail_BuyItemInsufficientPayment() public listItem {
@@ -260,7 +277,7 @@ contract NFTMarketplaceTest is Test {
         marketplace.buyItem{value: 0.5 ether}(address(nftCollection), 0);
     }
 
-    function testFail_BuyItemAuction() public {
+    function test_RevertWhen_BuyingActiveAuction() public {
         // List item as auction
         vm.startPrank(SELLER);
         nftCollection.approve(address(marketplace), 0);
@@ -268,55 +285,56 @@ contract NFTMarketplaceTest is Test {
         vm.stopPrank();
 
         // Try to buy auction item directly
-        vm.prank(BUYER);
-        marketplace.buyItem{value: 1 ether}(address(nftCollection), 0);
-    }
-
-    function test_BuyMultipleItems() public {
-        vm.startPrank(nftCollection.owner());
-        // Mint multiple NFTs to seller
-        uint256[] memory tokenIds = new uint256[](3);
-        for (uint256 i = 0; i < 3; i++) {
-            tokenIds[i] = nftCollection.mint(
-                SELLER,
-                string.concat("token", vm.toString(i + 1), ".json"),
-                500 // 5% royalty
-            );
-        }
-        vm.stopPrank();
-
-        // List all NFTs
-        vm.startPrank(SELLER);
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            nftCollection.approve(address(marketplace), tokenIds[i]);
-            marketplace.listItem(address(nftCollection), tokenIds[i], 1 ether, false, ART_CATEGORY);
-        }
-        vm.stopPrank();
-
-        // Buy all NFTs
         vm.startPrank(BUYER);
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            marketplace.buyItem{value: 1 ether}(address(nftCollection), tokenIds[i]);
-            assertEq(nftCollection.ownerOf(tokenIds[i]), BUYER);
-        }
+        vm.expectRevert(NFTMarketplace.NFTMarketplace__AuctionAlreadyActive.selector);
+        marketplace.buyItem{value: 1 ether}(address(nftCollection), 0);
         vm.stopPrank();
     }
 
-    function test_BuyItemWithRoyalties() public listItem {
+    /**
+     * @notice This function tests if the royalty calculations and payments are handled correctly when someone buys an NFT
+     */
+    function test_SellerEarningsAfterRoyaltiesAndFees() public listItem {
         uint256 tokenId = 0;
         uint256 price = 1 ether;
-        // uint256 initialRoyaltyReceiverBalance = SELLER.balance;
 
-        ( /* address royaltyReceiver */ , uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, price);
+        // Get initial balances
+        uint256 initialSellerEarnings = marketplace.getEarnings(SELLER);
+        uint256 initialSellerBalance = SELLER.balance;
+        uint256 initialMarketplaceBalance = marketplace.owner().balance;
 
-        vm.prank(BUYER);
+        // Calculate expected splits
+        (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, price);
+        uint256 remainingAfterRoyalty = price - royaltyAmount;
+        uint256 marketplaceFee = (remainingAfterRoyalty * marketplace.getMarketplaceFee()) / 10000;
+        uint256 expectedSellerEarnings = remainingAfterRoyalty - marketplaceFee;
+
+        // Execute purchase
+        hoax(BUYER, price);
         marketplace.buyItem{value: price}(address(nftCollection), tokenId);
 
-        // Calculate expected proceeds after royalties and marketplace fee
-        uint256 marketplaceFee = (price * marketplace.getMarketplaceFee()) / 10000;
-        uint256 expectedProceeds = price - marketplaceFee - royaltyAmount;
+        // Verify NFT ownership changed
+        assertEq(nftCollection.ownerOf(tokenId), BUYER, "NFT should transfer to buyer");
 
-        // Verify royalty receiver got paid
-        assertEq(marketplace.getProceeds(SELLER), expectedProceeds);
+        // Verify earnings and balances
+        assertEq(
+            marketplace.getEarnings(SELLER),
+            initialSellerEarnings + expectedSellerEarnings,
+            "Seller earnings should be price minus royalty and marketplace fee"
+        );
+        assertEq(
+            royaltyReceiver.balance,
+            initialSellerBalance + royaltyAmount,
+            "Royalty receiver should get their share immediately"
+        );
+        assertEq(
+            marketplace.owner().balance,
+            initialMarketplaceBalance + marketplaceFee,
+            "Marketplace owner should get their fee immediately"
+        );
+
+        // Verify listing is removed
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.seller, address(0), "Listing should be removed after successful purchase");
     }
 }

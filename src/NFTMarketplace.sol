@@ -22,9 +22,10 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     error NFTMarketplace__NotListed();
     error NFTMarketplace__NotOwner();
     error NFTMarketplace__PriceNotMet();
-    error NFTMarketplace__NoProceeds();
+    error NFTMarketplace__NoEarnings();
     error NFTMarketplace__TransferFailed();
     error NFTMarketplace__AuctionNotActive();
+    error NFTMarketplace__AuctionAlreadyActive();
     error NFTMarketplace__AuctionEnded();
     error NFTMarketplace__BidTooLow();
     error NFTMarketplace__AuctionStillActive();
@@ -64,7 +65,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
 
     // Mappings
     mapping(address => mapping(uint256 => Listing)) private s_listings;
-    mapping(address => uint256) private s_proceeds;
+    mapping(address => uint256) private s_earnings;
     mapping(address => mapping(uint256 => Bid[])) private s_bids;
     mapping(bytes32 => ActiveListing[]) private s_categoryListings;
 
@@ -114,7 +115,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         uint256 timestamp
     );
 
-    event ProceedsWithdrawn(address indexed seller, uint256 amount, uint256 timestamp);
+    event EarningsWithdrawn(address indexed seller, uint256 amount, uint256 timestamp);
 
     event CategoryAdded(bytes32 indexed category, string name, uint256 timestamp);
 
@@ -193,7 +194,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     function buyItem(address nftAddress, uint256 tokenId) external payable nonReentrant whenNotPaused {
         Listing memory listing = s_listings[nftAddress][tokenId];
         if (listing.seller == address(0)) revert NFTMarketplace__NotListed();
-        if (listing.isAuction) revert NFTMarketplace__AuctionNotActive();
+        if (listing.isAuction) revert NFTMarketplace__AuctionAlreadyActive();
         if (msg.value < listing.price) revert NFTMarketplace__PriceNotMet();
 
         _processPaymentAndTransferNFT(nftAddress, tokenId, msg.value, listing.seller, msg.sender);
@@ -269,14 +270,14 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
-     * @notice Withdraw proceeds from sales
+     * @notice Withdraw earnings from sales
      */
-    function withdrawProceeds() external nonReentrant {
-        uint256 proceeds = s_proceeds[msg.sender];
-        if (proceeds <= 0) revert NFTMarketplace__NoProceeds();
-        s_proceeds[msg.sender] = 0;
-        payable(msg.sender).sendValue(proceeds);
-        emit ProceedsWithdrawn(msg.sender, proceeds, block.timestamp);
+    function withdrawEarnings() external nonReentrant {
+        uint256 earnings = s_earnings[msg.sender];
+        if (earnings <= 0) revert NFTMarketplace__NoEarnings();
+        s_earnings[msg.sender] = 0;
+        payable(msg.sender).sendValue(earnings);
+        emit EarningsWithdrawn(msg.sender, earnings, block.timestamp);
     }
 
     /**
@@ -330,7 +331,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Processes payment and calculates seller proceeds after royalties and fees and Transfer Nft
+     * @dev Processes payment and calculates seller earnings after royalties and fees and Transfer Nft
      * @param nftAddress Address of the NFT contract
      * @param tokenId Token ID of the NFT
      * @param paymentAmount Total payment amount
@@ -358,9 +359,9 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         uint256 marketplaceFee = (remainingAmount * i_marketplaceFee) / 10000;
         payable(owner()).sendValue(marketplaceFee);
 
-        // Update seller proceeds
-        uint256 sellerProceeds = remainingAmount - marketplaceFee;
-        s_proceeds[seller] += sellerProceeds;
+        // Update seller earnings
+        uint256 sellerEarnings = remainingAmount - marketplaceFee;
+        s_earnings[seller] += sellerEarnings;
 
         // Transfer NFT
         IERC721(nftAddress).safeTransferFrom(seller, buyer, tokenId);
@@ -441,8 +442,8 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         return s_listings[nftAddress][tokenId];
     }
 
-    function getProceeds(address seller) external view returns (uint256) {
-        return s_proceeds[seller];
+    function getEarnings(address seller) external view returns (uint256) {
+        return s_earnings[seller];
     }
 
     function getBidHistory(address nftAddress, uint256 tokenId) external view returns (Bid[] memory) {
@@ -594,9 +595,9 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     function getUserActivity(address user)
         external
         view
-        returns (uint256 activeListings, uint256 activeBids, uint256 availableProceeds)
+        returns (uint256 activeListings, uint256 activeBids, uint256 availableEarnings)
     {
-        availableProceeds = s_proceeds[user];
+        availableEarnings = s_earnings[user];
         bytes32[] memory categories = this.getCategories();
 
         for (uint256 c = 0; c < categories.length; c++) {
