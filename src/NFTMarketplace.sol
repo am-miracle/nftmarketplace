@@ -27,7 +27,8 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     error NFTMarketplace__AuctionNotActive();
     error NFTMarketplace__AuctionAlreadyActive();
     error NFTMarketplace__AuctionEnded();
-    error NFTMarketplace__BidTooLow();
+    error NFTMarketplace__BidBelowStartingPrice(uint256 startingPrice);
+    error NFTMarketplace__BidIncrementTooLow(uint256 minBidRequired);
     error NFTMarketplace__AuctionStillActive();
     error NFTMarketplace__NotHighestBidder();
     error NFTMarketplace__InvalidCategory();
@@ -211,8 +212,16 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
         Listing memory listing = s_listings[nftAddress][tokenId];
         if (!listing.isAuction) revert NFTMarketplace__AuctionNotActive();
         if (block.timestamp > listing.auctionEndTime) revert NFTMarketplace__AuctionEnded();
-        if (msg.value <= listing.highestBid + MIN_BID_INCREMENT) {
-            revert NFTMarketplace__BidTooLow();
+        // Check against starting price if no bids yet
+        if (listing.highestBid == 0) {
+            if (msg.value < listing.price) revert NFTMarketplace__BidBelowStartingPrice(listing.price);
+        } else {
+            // Check against minimum bid increment if there are previous bids
+            uint256 minBidRequired = listing.highestBid + MIN_BID_INCREMENT;
+
+            if (msg.value <= minBidRequired) {
+                revert NFTMarketplace__BidIncrementTooLow(minBidRequired);
+            }
         }
 
         // Refund previous highest bidder
@@ -627,5 +636,9 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
 
     function getCreator(address nftAddress) external view returns (address) {
         return _getCreator(nftAddress);
+    }
+
+    function getMinBidIncrement() external pure returns (uint256) {
+        return MIN_BID_INCREMENT;
     }
 }

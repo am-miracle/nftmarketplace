@@ -45,11 +45,25 @@ contract NFTMarketplaceTest is Test {
         uint256 royaltyAmount,
         address royaltyReceiver
     );
+    event BidPlaced(
+        address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount, uint256 timestamp
+    );
+    event BidWithdrawn(
+        address indexed bidder, address indexed nftAddress, uint256 indexed tokenId, uint256 amount, uint256 timestamp
+    );
 
     modifier listItem() {
         vm.startPrank(SELLER);
         nftCollection.approve(address(marketplace), 0);
         marketplace.listItem(address(nftCollection), 0, 1 ether, false, ART_CATEGORY);
+        vm.stopPrank();
+        _;
+    }
+
+    modifier createAuction() {
+        vm.startPrank(SELLER);
+        nftCollection.approve(address(marketplace), 0);
+        marketplace.listItem(address(nftCollection), 0, 1 ether, true, ART_CATEGORY);
         vm.stopPrank();
         _;
     }
@@ -336,5 +350,142 @@ contract NFTMarketplaceTest is Test {
         // Verify listing is removed
         NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
         assertEq(listing.seller, address(0), "Listing should be removed after successful purchase");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            AUCTION BIDDING TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_PlaceFirstBid() public createAuction {
+        uint256 tokenId = 0;
+        uint256 bidAmount = 1.5 ether;
+
+        vm.startPrank(BUYER);
+        vm.expectEmit(true, true, true, true);
+        emit BidPlaced(BUYER, address(nftCollection), tokenId, bidAmount, block.timestamp);
+        marketplace.placeBid{value: bidAmount}(address(nftCollection), tokenId);
+        vm.stopPrank();
+
+        // Verify bid was recorded
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.highestBidder, BUYER);
+        assertEq(listing.highestBid, bidAmount);
+    }
+
+    function test_PlaceHigherBid() public createAuction {
+        uint256 tokenId = 0;
+        address firstBidder = makeAddr("firstBidder");
+        address secondBidder = makeAddr("secondBidder");
+        uint256 firstBid = 1.5 ether;
+        uint256 secondBid = 2 ether;
+
+        // Place first bid
+        hoax(firstBidder, firstBid);
+        marketplace.placeBid{value: firstBid}(address(nftCollection), tokenId);
+
+        // Store first bidder's balance before second bid
+        uint256 firstBidderBalanceBefore = firstBidder.balance;
+
+        // Place higher bid
+        hoax(secondBidder, secondBid);
+        vm.expectEmit(true, true, true, true);
+        emit BidPlaced(secondBidder, address(nftCollection), tokenId, secondBid, block.timestamp);
+        marketplace.placeBid{value: secondBid}(address(nftCollection), tokenId);
+
+        // Verify new bid was recorded
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.highestBidder, secondBidder);
+        assertEq(listing.highestBid, secondBid);
+
+        // Verify previous bidder was refunded
+        assertEq(firstBidder.balance, firstBidderBalanceBefore + firstBid);
+    }
+
+    function test_RevertWhen_BidOnNonAuction() public {
+        // List item as direct sale
+        vm.startPrank(SELLER);
+        nftCollection.approve(address(marketplace), 0);
+        marketplace.listItem(address(nftCollection), 0, 1 ether, false, ART_CATEGORY);
+        vm.stopPrank();
+
+        // Try to place bid
+        hoax(BUYER, 1.5 ether);
+        vm.expectRevert(NFTMarketplace.NFTMarketplace__AuctionNotActive.selector);
+        marketplace.placeBid{value: 1.5 ether}(address(nftCollection), 0);
+    }
+
+    function test_RevertWhen_AuctionEnded() public createAuction {
+        uint256 tokenId = 0;
+        uint256 bidAmount = 1.5 ether;
+
+        // Move time past auction end
+        vm.warp(block.timestamp + 7 days + 1);
+
+        // Try to place bid
+        hoax(BUYER, bidAmount);
+        vm.expectRevert(NFTMarketplace.NFTMarketplace__AuctionEnded.selector);
+        marketplace.placeBid{value: bidAmount}(address(nftCollection), tokenId);
+    }
+
+    function test_RevertWhen_BidBelowStartingPrice() public createAuction {
+        uint256 tokenId = 0;
+        uint256 startingPrice = 1 ether;
+        uint256 lowBid = 0.5 ether; // Below starting price of 1 ether
+
+        // Verify auction is set up correctly
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.price, startingPrice, "Starting price should be set correctly");
+        assertTrue(listing.isAuction, "Should be an auction");
+
+        vm.startPrank(BUYER);
+        vm.expectRevert(
+            abi.encodeWithSelector(NFTMarketplace.NFTMarketplace__BidBelowStartingPrice.selector, startingPrice)
+        );
+        marketplace.placeBid{value: lowBid}(address(nftCollection), tokenId);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhen_BidIncrementTooLow() public createAuction {
+        uint256 tokenId = 0;
+        uint256 startingPrice = 1 ether;
+        uint256 firstBid = 1.5 ether;
+        uint256 lowIncrement = 1.55 ether; // Only 0.05 ETH higher than first bid
+
+        // Verify auction is set up correctly
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.price, startingPrice, "Starting price should be set correctly");
+        assertTrue(listing.isAuction, "Should be an auction");
+
+        hoax(makeAddr("firstBidder"), firstBid);
+        marketplace.placeBid{value: firstBid}(address(nftCollection), tokenId);
+
+        uint256 minBidRequired = firstBid + marketplace.getMinBidIncrement();
+
+        hoax(makeAddr("secondBidder"), lowIncrement);
+        vm.expectRevert(
+            abi.encodeWithSelector(NFTMarketplace.NFTMarketplace__BidIncrementTooLow.selector, minBidRequired)
+        );
+        marketplace.placeBid{value: lowIncrement}(address(nftCollection), tokenId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            CANCEL BID TESTS
+    //////////////////////////////////////////////////////////////*/
+    function test_CancelBid() public createAuction {
+        uint256 tokenId = 0;
+        uint256 bidAmount = 2 ether;
+
+        hoax(BUYER, bidAmount);
+        marketplace.placeBid{value: bidAmount}(address(nftCollection), tokenId);
+
+        vm.prank(BUYER);
+        vm.expectEmit(true, true, true, true);
+        emit BidWithdrawn(BUYER, address(nftCollection), tokenId, bidAmount, block.timestamp);
+        marketplace.cancelBid(address(nftCollection), tokenId);
+
+        // Verify bid was cancelled
+        NFTMarketplace.Listing memory listing = marketplace.getListing(address(nftCollection), tokenId);
+        assertEq(listing.highestBidder, address(0));
+        assertEq(listing.highestBid, 0);
     }
 }
