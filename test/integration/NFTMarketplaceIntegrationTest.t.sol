@@ -90,17 +90,17 @@ contract NFTMarketplaceIntegrationTest is Test {
         assertFalse(listing.isAuction);
 
         // Record initial balances
-        uint256 initialSellerBalance = seller.balance;
         uint256 initialMarketplaceBalance = marketplace.owner().balance;
+
+        // Get royalty info and record initial royalty reciever balance
+        (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, LISTING_PRICE);
+        uint256 initialRoyaltyReceiverBalance = royaltyReceiver.balance;
 
         // Buy NFT
         vm.prank(buyer);
         marketplace.buyItem{value: LISTING_PRICE}(address(nftCollection), tokenId);
 
         // Calculate fees and earnings
-        (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, LISTING_PRICE);
-        console.log("royaltyAmount", royaltyAmount);
-        console.log("LISTING_PRICE", LISTING_PRICE);
         uint256 remainingAfterRoyalty = LISTING_PRICE - royaltyAmount;
         uint256 marketplaceFee = (remainingAfterRoyalty * marketplace.getMarketplaceFee()) / 10000;
         uint256 sellerEarnings = remainingAfterRoyalty - marketplaceFee;
@@ -109,16 +109,15 @@ contract NFTMarketplaceIntegrationTest is Test {
         assertEq(nftCollection.ownerOf(tokenId), buyer);
         assertEq(marketplace.getEarnings(seller), sellerEarnings);
         assertEq(marketplace.owner().balance, initialMarketplaceBalance + marketplaceFee);
-        console.log("royaltyReceiver", royaltyReceiver);
-        console.log("seller", seller);
+        assertEq(royaltyReceiver.balance - initialRoyaltyReceiverBalance, royaltyAmount);
 
-        // assertEq(royaltyReceiver.balance, royaltyAmount);
+        uint256 balanceBeforeWithdraw = seller.balance;
 
-        // // Withdraw earnings
-        // vm.prank(seller);
-        // marketplace.withdrawEarnings();
-        // assertEq(seller.balance, initialSellerBalance + sellerEarnings);
-        // assertEq(marketplace.getEarnings(seller), 0);
+        // Withdraw earnings
+        vm.prank(seller);
+        marketplace.withdrawEarnings();
+        assertEq(seller.balance - balanceBeforeWithdraw, sellerEarnings, "Withdrawn amount does not match earnings");
+        assertEq(marketplace.getEarnings(seller), 0);
     }
 
     function test_CompleteAuctionFlow() public {
@@ -132,6 +131,10 @@ contract NFTMarketplaceIntegrationTest is Test {
         marketplace.listItem(address(nftCollection), tokenId, LISTING_PRICE, true, ART_CATEGORY);
         vm.stopPrank();
 
+        // store bid balance before bidders make a bid
+        uint256 initialBidder2Balance = bidder2.balance;
+        uint256 initialBidder1Balance = bidder1.balance;
+
         // Place bids
         uint256 bid1 = 1.5 ether;
         uint256 bid2 = 2 ether;
@@ -143,17 +146,16 @@ contract NFTMarketplaceIntegrationTest is Test {
         marketplace.placeBid{value: bid2}(address(nftCollection), tokenId);
 
         // Store balances before auction end
-        uint256 initialSellerBalance = seller.balance;
-        uint256 initialBidder1Balance = bidder1.balance;
-        uint256 initialBidder2Balance = bidder2.balance;
         uint256 initialMarketplaceBalance = marketplace.owner().balance;
+
+        (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, bid2);
+        uint256 initialRoyaltyReceiver = royaltyReceiver.balance;
 
         // End auction
         vm.warp(block.timestamp + 7 days + 1);
         marketplace.endAuction(address(nftCollection), tokenId);
 
         // Calculate fees and earnings
-        (address royaltyReceiver, uint256 royaltyAmount) = nftCollection.royaltyInfo(tokenId, bid2);
         uint256 remainingAfterRoyalty = bid2 - royaltyAmount;
         uint256 marketplaceFee = (remainingAfterRoyalty * marketplace.getMarketplaceFee()) / 10000;
         uint256 sellerEarnings = remainingAfterRoyalty - marketplaceFee;
@@ -162,14 +164,16 @@ contract NFTMarketplaceIntegrationTest is Test {
         assertEq(nftCollection.ownerOf(tokenId), bidder2);
         assertEq(marketplace.getEarnings(seller), sellerEarnings);
         assertEq(marketplace.owner().balance, initialMarketplaceBalance + marketplaceFee);
-        assertEq(bidder1.balance, initialBidder1Balance + bid1); // First bidder refunded
+        assertEq(bidder1.balance, initialBidder1Balance); // First bidder refunded
         assertEq(bidder2.balance, initialBidder2Balance - bid2); // Winning bidder paid
-        assertEq(royaltyReceiver.balance, royaltyAmount);
+        assertEq(royaltyReceiver.balance - initialRoyaltyReceiver, royaltyAmount);
+
+        uint256 balanceBeforeWithdraw = seller.balance;
 
         // Withdraw earnings
         vm.prank(seller);
         marketplace.withdrawEarnings();
-        assertEq(seller.balance, initialSellerBalance + sellerEarnings);
+        assertEq(seller.balance - balanceBeforeWithdraw, sellerEarnings);
     }
 
     function test_ListUpdateBuyFlow() public {
