@@ -70,7 +70,7 @@ contract HelperConfig is Script {
             marketplaceFee: DEFAULT_MARKETPLACE_FEE,
             nftName: "Neflex",
             nftSymbol: "NFLX",
-            nftBaseUri: "https://ipfs.io/ipfs/QmYaDcC1nCpNeQzoEF2tQz7gyu1WqpKKtZfZyK6cP3fcDR",
+            nftBaseUri: "https://ipfs.io/ipfs/QmViqbutXLYdkfqn9DzMJm2r5EPLKAkkKz5Jq5UaKAXtAn/",
             maxSupply: DEFAULT_MAX_SUPPLY,
             defaultRoyaltyFee: DEFAULT_ROYALTY_FEE
         });
