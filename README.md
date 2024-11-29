@@ -95,9 +95,13 @@ forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast -
 
 ## Contract Addresses
 
+<!-- chmod +x scripts/deploy_and_verify.sh
+./scripts/deploy_and_verify.sh -->
+
+
 - Sepolia Testnet:
-  - NFTCollection: `0x...`
-  - NFTMarketplace: `0x...`
+  - NFTCollection: `0xcAB64C9da2f2644af40F06C79f11487308949015`
+  - NFTMarketplace: `0xe2Da61d62CA092346C2A1a2B28870DD51E571424`
 
 ## Usage Examples
 
