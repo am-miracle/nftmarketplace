@@ -1,0 +1,8 @@
+{
+  "sepolia": {
+    "NFTCollection": {
+      "address": "0xcAB64C9da2f2644af40F06C79f11487308949015",
+      "startBlock": 7176762
+    }
+  }
+}
