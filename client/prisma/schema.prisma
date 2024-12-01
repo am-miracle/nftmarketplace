@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  clerkId       String   @unique
+  username      String?
+  walletAddress String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // NFT related fields
+  nftsOwned   Nft[]        @relation("owned")
+  nftsCreated Nft[]        @relation("created")
+  collections Collection[]
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  floorPrice  Float?
+  owner       User     @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  nfts        Nft[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Nft {
+  id              String      @id @default(cuid())
+  tokenId         BigInt
+  contractAddress String
+  name            String
+  description     String?
+  imageUrl        String
+  price           Float?
+  owner           User        @relation("owned", fields: [ownerId], references: [id])
+  ownerId         String
+  creator         User        @relation("created", fields: [creatorId], references: [id])
+  creatorId       String
+  collection      Collection? @relation(fields: [collectionId], references: [id])
+  collectionId    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([contractAddress, tokenId])
+}
