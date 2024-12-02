@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "upload-art": "ts-node scripts/uploadArt.ts"
+    "upload-art": "ts-node scripts/uploadArt.ts",
+    "extract-abis": "node scripts/extract-abis.js"
+
   },
   "dependencies": {
     "@apollo/client": "^3.11.10",

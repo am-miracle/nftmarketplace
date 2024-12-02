@@ -20,7 +20,7 @@ const GetStarted = () => {
         </span>
         <div className='flex flex-col md:flex-row gap-4'>
           {howItWorks.map((started, index) => (
-            <div className="rounded-lg p-4 lg:p-6 flex flex-row md:flex-col items-center gap-2 md:justify-center md:text-center bg-secondary" key={index}>
+            <div className="rounded-lg p-4 xl:p-6 flex flex-row md:flex-col items-center gap-2 md:justify-center md:text-center bg-secondary" key={index}>
               <div className="w-[120%] h-[100%] md:flex md:items-center md:justify-center md:w-full md:mx-auto">
                 <Image
                   src={started.image}
@@ -32,8 +32,8 @@ const GetStarted = () => {
                 />
               </div>
               <div className='w-auto'>
-                <h2 className="text-2xl font-semibold mb-2">{started.title}</h2>
-                <p className='text-lg'>{started.description}</p>
+                <h2 className="text-2xl lg:text-xl xl:text-2xl font-semibold mb-2">{started.title}</h2>
+                <p className='text-lg lg:text-base xl:text-lg'>{started.description}</p>
               </div>
             </div>
           ))}
