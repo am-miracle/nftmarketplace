@@ -2,10 +2,10 @@
 import React from 'react'
 import Nft from "../../assets/nft.svg"
 import Owner from "../../assets/owner.svg"
-import { Button } from '../ui/button';
 import { Rocket } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import CustomButton from '../custom/CustomButton';
 
 
 const Hero = () => {
@@ -17,13 +17,14 @@ const Hero = () => {
             <h1 className='xl:text-6xl lg:text-5xl text-3xl font-bold mb-3 capitalize'>Discover digital art & Collect NFTs</h1>
             <p className='lg:text-lg xl:text-2xl text-lg'>NFT marketplace built on Ethereum. Collect, buy, sell, and auction NFTs from more than 20k NFT artists.</p>
           </div>
-          
           <div className='hidden md:block'>
-            <Link href="/signup">
-              <Button className="bg-accent rounded-[20px] w-full md:w-1/2 h-[60px] text-white text-base font-semibold mb-7">
-                <Rocket size={20} className="mr-3" />
-                Get Started
-              </Button>
+            <Link href="/sign-up">
+              <CustomButton
+                type='button'
+                title='Get Started'
+                className='bg-accent md:w-1/2 mb-7 h-[60px] text-base'
+                icon={<Rocket size={20} className="mr-3" />}
+              />
             </Link>
             <div className="flex items-center lg:space-x-8 xl:space-x-16">
               <span>
@@ -52,10 +53,12 @@ const Hero = () => {
           />
           
           <div className='md:hidden w-full mt-6'>
-            <Button className="bg-accent rounded-[20px] text-white w-full h-[60px] text-base font-semibold mb-7">
-              <Rocket size={20} className="mr-3" />
-              Get Started
-            </Button>
+            <CustomButton
+              type='button'
+              title='Get Started'
+              className='bg-accent w-full mb-7 h-[60px] text-base'
+              icon={<Rocket size={20} className="mr-3" />}
+              />
             <div className="flex items-center space-x-8">
               <span>
                 <p className='font-bold text-2xl font-mono'>240k+</p>

@@ -4,7 +4,7 @@ import { Menu, X, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import Storefront from "../../assets/Storefront.svg"
 import Link from 'next/link';
-import { Button } from '../ui/button';
+import CustomButton from '../custom/CustomButton';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,22 +49,24 @@ const Navbar: React.FC = () => {
             ))}
             
             {/* Desktop Signup Button */}
-            <Button className='lg:h-[60px] bg-accent text-white px-7 py-2 rounded-[20px] text-base font-medium hover:scale-95 transition duration-300'>
               <Link
-                href="/signup"
-                className="lg:h-[60px] flex items-center "
+                href="/sign-up"
+                className="lg:h-[60px] "
               >
-                <UserPlus size={16} className="mr-2" />
-                Sign Up
+              <CustomButton
+                type='button'
+                  title='Sign Up'
+                  className='bg-accent lg:h-[60px] px-7 py-2'
+                  icon={<UserPlus size={16} className="mr-2" />}
+                />
               </Link>
-            </Button>
-          </div>
+            </div>
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center">
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-white"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -127,21 +129,17 @@ const Navbar: React.FC = () => {
             })}
 
             {/* Mobile Signup Button */}
-            <Button className='mt-8 h-[60px] bg-accent w-full text-white px-7 py-2 rounded-[20px] text-base font-medium hover:scale-95 transition duration-300 group'>
               <Link
                 href="/signup"
-                className="flex items-center group"
                 onClick={toggleMenu}
               >
-                <UserPlus 
-                  size={20} 
-                  className="mr-3"
-                />
-                <span>
-                  Sign Up
-                </span>
-              </Link>
-            </Button>
+              <CustomButton
+                type="button"
+                title='Sign Up'
+                className='bg-accent h-[60px] px-7 py-2 w-full mt-8'
+                icon={<UserPlus size={20} className="mr-3" />}
+              />
+            </Link>
 
           </div>
         </div>

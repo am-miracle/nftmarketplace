@@ -53,7 +53,8 @@ export default {
   				'3': 'var(--chart-3)',
   				'4': 'var(--chart-4)',
   				'5': 'var(--chart-5)'
-  			}
+				},
+			icon: 'var(--icon)'
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

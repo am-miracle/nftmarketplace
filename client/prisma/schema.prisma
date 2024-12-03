@@ -9,54 +9,116 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  clerkId       String   @unique
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId       String  @unique
   username      String?
-  walletAddress String?  @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  email         String  @unique
+  walletAddress String? @unique
+  bio           String?
+  profileImage  String?
+  coverImage    String?
 
-  // NFT related fields
-  nftsOwned   Nft[]        @relation("owned")
-  nftsCreated Nft[]        @relation("created")
-  collections Collection[]
+  // Social links
+  twitter   String?
+  instagram String?
+  website   String?
+
+  // Collections created by user
+  collections Collection[] @relation("CreatedBy")
+
+  // NFTs owned by user
+  ownedNFTs NFT[] @relation("OwnedBy")
+
+  // NFTs created by user
+  createdNFTs NFT[] @relation("CreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Collection {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  imageUrl    String?
-  floorPrice  Float?
-  owner       User     @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  nfts        Nft[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Nft {
-  id              String      @id @default(cuid())
-  tokenId         BigInt
-  contractAddress String
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   name            String
   description     String?
-  imageUrl        String
-  price           Float?
-  owner           User        @relation("owned", fields: [ownerId], references: [id])
-  ownerId         String
-  creator         User        @relation("created", fields: [creatorId], references: [id])
-  creatorId       String
-  collection      Collection? @relation(fields: [collectionId], references: [id])
-  collectionId    String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  contractAddress String   @unique
+  symbol          String
+  coverImage      String?
+  bannerImage     String?
+  category        Category @relation(fields: [categoryId], references: [id])
+  categoryId      String   @db.ObjectId
+
+  // Collection statistics
+  floorPrice  Float?
+  totalVolume Float? @default(0)
+  totalSales  Int    @default(0)
+
+  // Creator info
+  creator   User   @relation("CreatedBy", fields: [creatorId], references: [id])
+  creatorId String @db.ObjectId
+
+  // NFTs in collection
+  nfts NFT[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NFT {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  tokenId         Int
+  name            String
+  description     String?
+  image           String
+  contractAddress String
+
+  // Metadata
+  attributes Json?
+
+  // Collection reference
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  collectionId String     @db.ObjectId
+
+  // Creator and Owner
+  creator   User   @relation("CreatedBy", fields: [creatorId], references: [id])
+  creatorId String @db.ObjectId
+  owner     User   @relation("OwnedBy", fields: [ownerId], references: [id])
+  ownerId   String @db.ObjectId
+
+  // Listing info
+  listingDetails Listing?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([contractAddress, tokenId])
+}
+
+model Listing {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  price          Float
+  isAuction      Boolean   @default(false)
+  auctionEndTime DateTime?
+  status         String    @default("ACTIVE") // ACTIVE, SOLD, CANCELLED
+
+  // NFT reference
+  nft   NFT    @relation(fields: [nftId], references: [id])
+  nftId String @unique @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String       @unique
+  description String?
+  collections Collection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
