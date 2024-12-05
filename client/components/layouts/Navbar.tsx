@@ -5,9 +5,12 @@ import Image from 'next/image';
 import Storefront from "../../assets/Storefront.svg"
 import Link from 'next/link';
 import CustomButton from '../custom/CustomButton';
+import { SignedIn, SignedOut, useAuth, UserButton } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
-const Navbar: React.FC = () => {
+const Navbar = ({ userId}: { userId: string | null}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -47,19 +50,25 @@ const Navbar: React.FC = () => {
                 {link.label}
              </Link>
             ))}
-            
             {/* Desktop Signup Button */}
-              <Link
+            {userId ?
+              <SignedIn>
+                <UserButton  />
+              </SignedIn> : (
+              <SignedOut>
+                <Link
                 href="/sign-up"
-                className="lg:h-[60px] "
-              >
-              <CustomButton
-                type='button'
-                  title='Sign Up'
-                  className='bg-accent lg:h-[60px] px-7 py-2'
-                  icon={<UserPlus size={16} className="mr-2" />}
-                />
-              </Link>
+                className="lg:h-[40px] xl:h-[60px]"
+                >
+                <CustomButton
+                  type='button'
+                    title='Sign Up'
+                    className='bg-accent'
+                    icon={<UserPlus size={16} className="mr-2" />}
+                  />
+                </Link>
+              </SignedOut>
+            )}
             </div>
 
           {/* Mobile Menu Button */}

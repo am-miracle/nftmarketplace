@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import CustomInput from "@/components/custom/CustomInput";
 import CustomButton from "@/components/custom/CustomButton";
+import toast from "react-hot-toast";
+import { Mail } from "lucide-react";
 
 export default function VerifyEmailPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -35,9 +37,11 @@ export default function VerifyEmailPage() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/");
+        window.location.href = "/";
+        toast.success("Email verified successfully");
       } else {
-        console.log(result);
+        setError(result.missingFields.join(" "));
+        console.error(JSON.stringify(result, null, 2))
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -65,6 +69,7 @@ export default function VerifyEmailPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             isLoading={isLoading}
+            icon={<Mail size={20} className="text-icon" />}
           />
           {error && (
             <p className="text-sm text-red-500 dark:text-red-500 mt-2">{error}</p>
@@ -73,7 +78,7 @@ export default function VerifyEmailPage() {
         <CardFooter>
           <CustomButton
             type="submit"
-            className="w-full mt-3"
+            className="w-full mt-3 bg-accent"
             isLoading={isLoading}
             title="Verify Email"
           />

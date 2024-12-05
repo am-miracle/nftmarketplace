@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -15,11 +14,13 @@ import Link from "next/link";
 import CustomButton from "@/components/custom/CustomButton";
 import CustomInput from "@/components/custom/CustomInput";
 import { Lock, Mail, User } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function SignUpPage() {
   const { isLoaded, signUp } = useSignUp();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  // const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
@@ -33,36 +34,38 @@ export default function SignUpPage() {
     if (!isLoaded) return;
     if (
       formData.password!== formData.confirmPassword ||
-      formData.password.length < 8 ||
-      formData.email.indexOf("@") === -1 ||
-      formData.username.length < 3
+      formData.password.length < 8
     ) {
-      return;
+      return toast.error("Password not the same as confirm password");
+    }
+    if (!formData.email.match(/.+@.+\..+/)) {
+      return toast.error("Invalid email address");
+    }
+    if (formData.username.length < 3) {
+      return toast.error("Username must be at least 3 characters long");
     }
 
     try {
       setIsLoading(true);
       setError("");
 
-      const result = await signUp.create({
+      await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
         username: formData.username,
       });
 
-      if (result.status === "complete") {
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
-
-        router.push("/verify-email");
-      } else {
-        console.log(result);
-      }
+      await signUp.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      toast.success("Sign up successful, please check your email for verification");
+      router.refresh();
+      router.push("/verify-email");
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       }
+      console.error(JSON.stringify(err, null, 2))
     } finally {
       setIsLoading(false);
     }
@@ -112,12 +115,12 @@ export default function SignUpPage() {
             icon={<Lock size={20} className="mr-2 h-5 w-5 text-icon" />}
           />
           <CustomInput
-            name="password"
+            name="confirm_password"
             type="password"
             placeholder="confirm password"
-            value={formData.password}
+            value={formData.confirmPassword}
             onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
+              setFormData({ ...formData, confirmPassword: e.target.value })
             }
             isLoading={isLoading}
             icon={<Lock size={20} className="mr-2 h-5 w-5 text-icon" />}
@@ -127,6 +130,8 @@ export default function SignUpPage() {
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-4 mt-3">
+          {/* CAPTCHA Widget */}
+          <div id="clerk-captcha"></div>
           <CustomButton
             title="Sign up"
             className="bg-accent w-full"

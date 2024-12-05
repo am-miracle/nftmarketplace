@@ -14,10 +14,10 @@ import Link from "next/link";
 import CustomInput from "@/components/custom/CustomInput";
 import { Lock, Mail } from "lucide-react";
 import CustomButton from "@/components/custom/CustomButton";
+import toast from "react-hot-toast";
 
 export default function SignInPage() {
   const { isLoaded, signIn } = useSignIn();
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -39,8 +39,10 @@ export default function SignInPage() {
       });
 
       if (result.status === "complete") {
-        router.push("/");
+        window.location.href = "/";
+        toast.success("Signed in successfully");
       } else {
+        setError(result.status || "error");
         console.log(result);
       }
     } catch (err) {
