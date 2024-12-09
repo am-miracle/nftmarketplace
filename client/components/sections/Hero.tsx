@@ -29,15 +29,15 @@ const Hero = () => {
             <div className="flex items-center lg:space-x-8 xl:space-x-16">
               <span>
                 <p className='font-bold lg:text-xl xl:text-2xl font-mono'>240k+</p>
-                <p className='text-lg'>Total Sale</p>
+                <p className='text-xl'>Total Sales</p>
               </span>
               <span>
                 <p className='font-bold lg:text-xl xl:text-2xl font-mono'>100k+</p>
-                <p className='text-lg'>Auctions</p>
+                <p className='text-xl'>Auctions</p>
               </span>
               <span>
                 <p className='font-bold lg:text-xl xl:text-2xl font-mono'>240k+</p>
-                <p className='text-lg'>Artists</p>
+                <p className='text-xl'>Artists</p>
               </span>
             </div>
           </div>
@@ -59,18 +59,18 @@ const Hero = () => {
               className='bg-accent w-full mb-7 h-[60px] text-base'
               icon={<Rocket size={20} className="mr-3" />}
               />
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center justify-between md:justify-normal space-x-8">
               <span>
                 <p className='font-bold text-2xl font-mono'>240k+</p>
-                <p>Total Sale</p>
+                <p className='text-base md:text-xl'>Total Sales</p>
               </span>
               <span>
                 <p className='font-bold text-2xl font-mono'>100k+</p>
-                <p>Auctions</p>
+                <p className='text-base md:text-xl'>Auctions</p>
               </span>
               <span>
                 <p className='font-bold text-2xl font-mono'>240k+</p>
-                <p>Artists</p>
+                <p className='text-base md:text-xl'>Artists</p>
               </span>
             </div>
           </div>
@@ -204,10 +204,6 @@ const NftCard = ({ name, image, price, owner, ownerImage, highestBid }: NftCardP
           75% {
             transform: translateZ(-60px) rotateY(-15deg);
           }
-        }
-        
-        .animated-card:hover {
-          animation-play-state: paused;
         }
       `}</style>
     </div>

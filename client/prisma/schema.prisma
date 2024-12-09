@@ -37,8 +37,13 @@ model User {
   // NFTs created by user
   createdNFTs NFT[] @relation("CreatedBy")
 
+  // Activity tracking
+  totalVolume Float @default(0)
+  totalSales  Int   @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  bid       Bid[]
 }
 
 model Collection {
@@ -99,18 +104,20 @@ model NFT {
 }
 
 model Listing {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
   price          Float
-  isAuction      Boolean   @default(false)
+  isAuction      Boolean       @default(false)
   auctionEndTime DateTime?
-  status         String    @default("ACTIVE") // ACTIVE, SOLD, CANCELLED
+  status         ListingStatus @default(ACTIVE) // ACTIVE, SOLD, CANCELLED
 
   // NFT reference
   nft   NFT    @relation(fields: [nftId], references: [id])
   nftId String @unique @db.ObjectId
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  history   ListingHistory[]
+  bid       Bid[]
 }
 
 model Category {
@@ -121,4 +128,32 @@ model Category {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  EXPIRED
+}
+
+model ListingHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  listingId String   @db.ObjectId
+  event     String // LISTED, PRICE_UPDATED, SOLD, CANCELLED
+  price     Float
+  from      String? // wallet address
+  to        String? // wallet address
+  timestamp DateTime @default(now())
+}
+
+model Bid {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  listingId String   @db.ObjectId
+  bidder    User     @relation(fields: [bidderId], references: [id])
+  bidderId  String   @db.ObjectId
+  amount    Float
+  timestamp DateTime @default(now())
 }

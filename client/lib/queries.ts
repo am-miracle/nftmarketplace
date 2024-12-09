@@ -1,8 +1,8 @@
-"use server"
+// "use server"
 import { NFT_COLLECTION_ABI, NFT_COLLECTION_ADDRESS } from '@/constants/abis/NFTCollection';
 import { MARKETPLACE_ABI, MARKETPLACE_ADDRESS } from '@/constants/abis/NFTMarketplace';
 import { NFT } from '@/types';
-// import axios from 'axios';
+import { gql, DocumentNode } from '@apollo/client';
 import { ethers } from 'ethers';
 
 
@@ -59,3 +59,34 @@ export async function getNFTs(): Promise<NFT[]> {
     return [];
   }
 }
+
+export const GET_CATEGORIES: DocumentNode = gql`
+  query GetCategories {
+    categoryAddeds(first: 100, orderBy: timestamp) {
+      id
+      category
+      name
+      timestamp
+    }
+  }
+`;
+
+export const GET_CATEGORY_LISTINGS: DocumentNode = gql`
+  query GetCategoryListings($category: String!) {
+    itemListeds(
+      where: { category: $category }
+      first: 20
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      seller
+      nftAddress
+      tokenId
+      price
+      category
+      collectionName
+      timestamp
+    }
+  }
+`;

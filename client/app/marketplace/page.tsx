@@ -1,9 +1,10 @@
 import { LoadingGrid } from '@/components/loading';
-import NFTGrid from '@/components/NftGrid';
-import { getNFTs } from '@/lib/queries';
 import { Suspense } from 'react';
 import SearchNft from './SearchNft';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { useNFTs } from '@/lib/hooks/useNFTs';
+import { getNFTs } from '@/lib/queries';
+import NFTGrid from '@/components/NftGrid';
 
 export const revalidate = 60; // revalidate the data at most every 60 seconds
 
@@ -22,7 +23,11 @@ async function NFTGridWrapper() {
   return <NFTGrid nfts={nfts} />;
 }
 
-export default function MarketplacePage() {
+  export default async function MarketplacePage(
+
+  ) {
+      // const { nfts, isLoading } = useNFTs();
+
   return (
     <main className="">
       <section className='max-w-[1050px] mx-auto'>
@@ -52,7 +57,7 @@ export default function MarketplacePage() {
         <TabsContent value="nft" className='bg-secondary h-full border-b border-background'>
           <div className='max-w-[1050px] mx-auto'>
             <Suspense fallback={<LoadingGrid />}>
-              <NFTGridWrapper />
+             <NFTGridWrapper />
             </Suspense>
           </div>
         </TabsContent>

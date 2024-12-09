@@ -1,7 +1,4 @@
 'use client';
-
-import { ApolloProvider } from '@apollo/client';
-import client from '@/lib/apollo-client';
 import '@rainbow-me/rainbowkit/styles.css';
 import {
   getDefaultConfig,
@@ -20,7 +17,7 @@ import {
 
 const config = getDefaultConfig({
   appName: 'NEFLEX',
-  projectId: '32522fd5c90e00ebed68a076821dc239',
+  projectId: "32522fd5c90e00ebed68a076821dc239",
   chains: [mainnet, sepolia],
   ssr: true, // If your dApp uses server side rendering (SSR)
   transports: {
@@ -30,13 +27,11 @@ const config = getDefaultConfig({
 
 const queryClient = new QueryClient();
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <ApolloProvider client={client}>
-      {children}
-    </ApolloProvider>
-  );
-}
+export const SUPPORTED_NETWORK = {
+  id: 11155111,  // Sepolia
+  name: 'Sepolia',
+  rpcUrls: ['https://rpc.sepolia.org']
+};
 
 export function RainbowProvider({ children }: { children: React.ReactNode }) {
   return (

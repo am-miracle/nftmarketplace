@@ -9,11 +9,23 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ConnectedWallet } from './ConnectWallet';
 import { useAccount } from 'wagmi';
-import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { SUPPORTED_NETWORK } from '@/lib/providers';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const CustomWallet = () => {
-    const { isConnected } = useAccount();
-    const router = useRouter();
+    const { isConnected, chain } = useAccount();
+
+    const NetworkAlert = () => (
+    <Alert variant="destructive" className="w-full">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Wrong Network</AlertTitle>
+      <AlertDescription>
+        Please switch to Sepolia Testnet to use this application.
+      </AlertDescription>
+    </Alert>
+  );
 
     if (isConnected) {
     return (
@@ -26,7 +38,8 @@ const CustomWallet = () => {
             Your wallet is connected successfully
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
+        <CardContent className="flex flex-col items-center gap-4">
+          {chain?.id !== SUPPORTED_NETWORK.id && <NetworkAlert />}
           <ConnectedWallet />
         </CardContent>
       </Card>
