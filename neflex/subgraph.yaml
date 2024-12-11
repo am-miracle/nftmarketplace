@@ -1,0 +1,62 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: NFTCollection
+    network: sepolia
+    source:
+      address: "0x2e70EBbefc792bB3b842363771F7a3d0E3223721"
+      abi: NFTCollection
+      startBlock: 7255813
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Approval
+        - ApprovalForAll
+        - BaseURILocked
+        - BaseURIUpdated
+        - BatchMetadataUpdate
+        - BatchTokensMinted
+        - MetadataUpdate
+        - MetadataUpdated
+        - OwnershipTransferred
+        - TokenBurned
+        - TokenMinted
+        - TokenURILocked
+        - Transfer
+      abis:
+        - name: NFTCollection
+          file: ./abis/NFTCollection.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,indexed uint256)
+          handler: handleApproval
+        - event: ApprovalForAll(indexed address,indexed address,bool)
+          handler: handleApprovalForAll
+        - event: BaseURILocked()
+          handler: handleBaseURILocked
+        - event: BaseURIUpdated(string)
+          handler: handleBaseURIUpdated
+        - event: BatchMetadataUpdate(uint256,uint256)
+          handler: handleBatchMetadataUpdate
+        - event: BatchTokensMinted(indexed address,uint256[],string[],uint96)
+          handler: handleBatchTokensMinted
+        - event: MetadataUpdate(uint256)
+          handler: handleMetadataUpdate
+        - event: MetadataUpdated(indexed uint256,string,string)
+          handler: handleMetadataUpdated
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: TokenBurned(indexed uint256)
+          handler: handleTokenBurned
+        - event: TokenMinted(indexed address,indexed uint256,string,uint96)
+          handler: handleTokenMinted
+        - event: TokenURILocked(indexed uint256)
+          handler: handleTokenURILocked
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
+      file: ./src/nft-collection.ts

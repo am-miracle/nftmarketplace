@@ -100,8 +100,8 @@ forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast -
 <!-- QmPJDVWgYKjLahAnE8X6sXzsmifKXNgQpbPQcN3omr85N8 -->
 
 - Sepolia Testnet:
-  - NFTCollection: `0xcAB64C9da2f2644af40F06C79f11487308949015`
-  - NFTMarketplace: `0xe2Da61d62CA092346C2A1a2B28870DD51E571424`
+  - NFTCollection: `0x2e70EBbefc792bB3b842363771F7a3d0E3223721`
+  - NFTMarketplace: `0x15053f4bf121a516C5454D9A69638B281907Fe71`
 
 ## Usage Examples
 
