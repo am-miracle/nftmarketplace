@@ -76,7 +76,7 @@ const Footer = () => {
                     <h5 className='text-2xl font-bold mb-8 text-white font-mono'>Explore</h5>
                     <p className='flex flex-col gap-3'>
                         <Link href="/marketplace">Marketplace</Link>
-                        <Link href="/rankings">Rankings</Link>
+                        <Link href="/creators">Rankings</Link>
                         <Link href="/wallet">Connect a wallet</Link>
                     </p>
                 </div>

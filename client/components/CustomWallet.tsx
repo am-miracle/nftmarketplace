@@ -9,7 +9,6 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ConnectedWallet } from './ConnectWallet';
 import { useAccount } from 'wagmi';
-import toast from 'react-hot-toast';
 import { SUPPORTED_NETWORK } from '@/lib/providers';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { AlertCircle } from 'lucide-react';

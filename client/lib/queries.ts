@@ -90,3 +90,27 @@ export const GET_CATEGORY_LISTINGS: DocumentNode = gql`
     }
   }
 `;
+
+export const GET_NFT_HISTORY = gql`
+  query GetNFTHistory($tokenId: ID!, $nftAddress: String!) {
+    token(id: $tokenId) {
+      id
+      transfers {
+        from
+        to
+        timestamp
+      }
+      listings {
+        seller
+        price
+        isAuction
+        timestamp
+      }
+      bids {
+        bidder
+        amount
+        timestamp
+      }
+    }
+  }
+`;

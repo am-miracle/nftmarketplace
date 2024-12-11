@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { NFT_COLLECTION_ABI, NFT_COLLECTION_ADDRESS } from "@/constants/abis/NFTCollection";
 import toast from 'react-hot-toast';
 import CustomButton from './custom/CustomButton';
+// import { useRouter } from 'next/navigation';
 
 
 interface MintNFTFormProps {
@@ -22,7 +23,8 @@ interface MintNFTFormProps {
 const MintNFTForm: React.FC<MintNFTFormProps> = ({
   categories,
 }) => {
-   const { address } = useAccount();
+  const { address } = useAccount();
+  // const router = useRouter();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
@@ -94,6 +96,8 @@ const MintNFTForm: React.FC<MintNFTFormProps> = ({
       if (simulateData?.request) {
         writeContract(simulateData.request);
       }
+
+      setSuccess(true);
 
     } catch (err: Error | unknown) {
       setError(err instanceof Error ? err.message : 'Failed to mint NFT');
@@ -224,9 +228,7 @@ const MintNFTForm: React.FC<MintNFTFormProps> = ({
           )}
 
           {success && (
-            <div className="text-green-500 text-sm">
-              NFT minted successfully!
-            </div>
+            toast.success("NFT minted successfully")
           )}
 
         <CustomButton

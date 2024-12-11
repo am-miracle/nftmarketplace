@@ -5,12 +5,10 @@ import Image from 'next/image';
 import Storefront from "../../assets/Storefront.svg"
 import Link from 'next/link';
 import CustomButton from '../custom/CustomButton';
-import { SignedIn, SignedOut, useAuth, UserButton } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 const Navbar = ({ userId}: { userId: string | null}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -18,7 +16,7 @@ const Navbar = ({ userId}: { userId: string | null}) => {
 
   const navLinks = [
     { href: '/marketplace', label: 'Marketplace' },
-    { href: '/rankings', label: 'Rankings' },
+    { href: '/creators', label: 'Rankings' },
     { href: '/wallet', label: 'Connect a wallet' }
   ];
 
