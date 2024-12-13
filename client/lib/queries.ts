@@ -114,3 +114,43 @@ export const GET_NFT_HISTORY = gql`
     }
   }
 `;
+
+export const GET_ALL_NFTS = gql`
+  query GetAllNFTs($first: Int!, $skip: Int!) {
+    tokenMinteds(
+      first: $first
+      skip: $skip
+      orderBy: blockTimestamp
+      orderDirection: desc
+    ) {
+      id
+      to
+      tokenId
+      tokenURI
+      royaltyFee
+      blockNumber
+      blockTimestamp
+      transactionHash
+    }
+    itemListeds(
+      first: $first
+      skip: $skip
+      orderBy: blockTimestamp
+      orderDirection: desc
+    ) {
+      id
+      seller
+      nftAddress
+      tokenId
+      price
+      isAuction
+      category
+      timestamp
+      collectionName
+      creator
+      blockNumber
+      blockTimestamp
+      transactionHash
+    }
+  }
+`

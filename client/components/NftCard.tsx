@@ -2,12 +2,11 @@ import React from 'react';
 import Image from 'next/image';
 
 interface NftProps {
-    tokenId?: string;
     name: string;
     image: string;
     price?: number;
-    owner: string;
-    ownerImage: string;
+    owner?: string;
+    ownerImage?: string;
     highestBid?: number;
 }
 
@@ -28,7 +27,7 @@ const NftCard = ({
             alt={name}
             width={100}
             height={100}
-            className="h-[206px] w-full xl:h-full object-cover"
+            className="min-h-[295px] min-w-full object-cover"
             style={{width: "auto", height: "auto"}}
         />
       </div>
@@ -36,7 +35,7 @@ const NftCard = ({
       {/* Card Content */}
       <div className="p-5">
         {/* NFT Name */}
-        <h3 className="text-2xl font-bold mb-2 truncate">
+        <h3 className="text-2xl font-semibold mb-2 truncate">
           {name}
         </h3>
 
@@ -46,7 +45,7 @@ const NftCard = ({
                 <div className="w-7 h-7">
                     <Image
                         src={ownerImage}
-                        alt={owner}
+                        alt={owner || 'Owner'}
                         width={100}
                         height={100}
                         className="w-full h-full rounded-full mr-3 object-cover"
@@ -56,7 +55,7 @@ const NftCard = ({
             ): (
                     <div className="w-7 h-7 rounded-full mr-3 bg-gray-300">{ name[0] }</div>
             )}
-            <p className="font-medium font-mono truncate text-lg max-w-[200px]">{owner}</p>
+            <p className="font-medium font-mono truncate text-base max-w-[200px]">{owner}</p>
         </div>
 
         {/* Price and Bid Information */}

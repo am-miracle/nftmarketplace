@@ -1,6 +1,4 @@
 import MintNFTForm from "@/components/MintNFTForm"
-import { getClient } from "@/lib/apollo-client";
-import { GET_CATEGORIES } from "@/lib/queries";
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -10,11 +8,6 @@ export const metadata: Metadata = {
 
 
 const MintPage = async () => {
-  const { data } = await getClient().query({
-    query: GET_CATEGORIES,
-  });
-  const categories = data.categoryAddeds;
-
 
   return (
     <main className="">
@@ -26,9 +19,7 @@ const MintPage = async () => {
       </section>
       <hr className='border-primary mb-0' />
       <section className='my-10 px-4 w-full max-w-[1050px] mx-auto text-primary pt-4 ease-in-out duration-300'>
-        <MintNFTForm
-          categories={categories || []}
-        />
+        <MintNFTForm />
       </section>
     </main>
  );

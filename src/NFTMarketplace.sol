@@ -61,7 +61,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
 
     // State variables
     uint256 private constant AUCTION_DURATION = 7 days;
-    uint256 private constant MIN_BID_INCREMENT = 0.0001 ether; // was 0.1 before later redeployed
+    uint256 private constant MIN_BID_INCREMENT = 0.0001 ether; // was 0.1 before
     uint256 private immutable i_marketplaceFee; // in basis points (e.g., 250 = 2.5%)
 
     // Mappings

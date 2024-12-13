@@ -21,7 +21,9 @@ const config = getDefaultConfig({
   chains: [mainnet, sepolia],
   ssr: true, // If your dApp uses server side rendering (SSR)
   transports: {
-    [sepolia.id]: http(`https://rpc.ankr.com/eth_sepolia/${process.env.RPC_ID}`)
+    // [sepolia.id]: http(`https://rpc.ankr.com/eth_sepolia/${process.env.RPC_ID}`)
+        [sepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL)
+
   }
 });
 

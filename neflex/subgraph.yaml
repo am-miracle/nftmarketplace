@@ -60,3 +60,56 @@ dataSources:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
       file: ./src/nft-collection.ts
+  - kind: ethereum
+    name: NFTMarketplace
+    network: sepolia
+    source:
+      address: "0x15053f4bf121a516C5454D9A69638B281907Fe71"
+      abi: NFTMarketplace
+      startBlock: 7260008
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AuctionEnded
+        - BidPlaced
+        - BidWithdrawn
+        - CategoryAdded
+        - EarningsWithdrawn
+        - ItemBought
+        - ItemCanceled
+        - ItemListed
+        - NFTMarketplaceOwnershipTransferred
+        - Paused
+        - Unpaused
+      abis:
+        - name: NFTMarketplace
+          file: ./abis/NFTMarketplace.json
+      eventHandlers:
+        - event: AuctionEnded(indexed address,indexed address,indexed
+            uint256,uint256,address,uint256)
+          handler: handleAuctionEnded
+        - event: BidPlaced(indexed address,indexed address,indexed uint256,uint256,uint256)
+          handler: handleBidPlaced
+        - event: BidWithdrawn(indexed address,indexed address,indexed uint256,uint256,uint256)
+          handler: handleBidWithdrawn
+        - event: CategoryAdded(indexed bytes32,string,uint256)
+          handler: handleCategoryAdded
+        - event: EarningsWithdrawn(indexed address,uint256,uint256)
+          handler: handleEarningsWithdrawn
+        - event: ItemBought(indexed address,indexed address,indexed
+            uint256,uint256,address,uint256,uint256,address)
+          handler: handleItemBought
+        - event: ItemCanceled(indexed address,indexed address,indexed uint256,uint256)
+          handler: handleItemCanceled
+        - event: ItemListed(indexed address,indexed address,indexed
+            uint256,uint256,bool,bytes32,uint256,string,address)
+          handler: handleItemListed
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: Paused(address)
+          handler: handlePaused
+        - event: Unpaused(address)
+          handler: handleUnpaused
+      file: ./src/nft-marketplace.ts
