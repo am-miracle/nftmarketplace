@@ -2,13 +2,25 @@ import React from 'react'
 import CustomButton from '../custom/CustomButton'
 import { Eye } from 'lucide-react'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { getClient } from '@/lib/apollo-client'
+import { GET_ALL_NFTS } from '@/lib/queries'
+import { LoadingGrid } from '../loading'
+import NFTGrid from '../NFTGrid'
 
-const DiscoverMore = () => {
+const DiscoverMore = async () => {
+  const { data } = await getClient().query({
+    query: GET_ALL_NFTS,
+    variables: {
+        first: 3,
+        skip: 0,
+    },
+  });
   return (
     <section className='px-8 py-10 md:px-11 lg:px-36 text-white my-10'>
       <div className='max-w-[1050px] mx-auto'>
         <div className='flex items-center justify-between'>
-          <div className='grid gap-2 mb-12'>
+          <div className='grid gap-2'>
             <h1 className='text-4xl font-bold'>Discover More NFTs</h1>
             <p>Explore new trending NFTs</p>
           </div>
@@ -22,7 +34,11 @@ const DiscoverMore = () => {
           </Link>
         </div>
         <div>
-
+          <Suspense fallback={<LoadingGrid />}>
+            <NFTGrid
+              data={data}
+            />
+          </Suspense>
         </div>
         <Link href={"/marketplace"} className='block md:hidden'>
           <CustomButton

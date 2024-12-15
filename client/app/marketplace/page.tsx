@@ -2,9 +2,9 @@ import { LoadingGrid } from '@/components/loading';
 import { Suspense } from 'react';
 import SearchNft from './SearchNft';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import NFTGalleryPage from '@/components/NFTGalleryPage';
 import { getClient } from '@/lib/apollo-client';
 import { GET_ALL_NFTS } from '@/lib/queries';
+import NFTGrid from '@/components/NFTGrid';
 
 
   export default async function MarketplacePage() {
@@ -14,7 +14,6 @@ import { GET_ALL_NFTS } from '@/lib/queries';
             first: 100,
             skip: 0,
         },
-  
     });
   return (
     <main className="">
@@ -45,7 +44,7 @@ import { GET_ALL_NFTS } from '@/lib/queries';
         <TabsContent value="nft" className='bg-secondary h-full border-b border-background'>
           <div className='max-w-[1050px] mx-auto'>
               <Suspense fallback={<LoadingGrid />}>
-                <NFTGalleryPage
+                <NFTGrid
                     data={data}
                 />
             </Suspense>

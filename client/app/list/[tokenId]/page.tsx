@@ -16,8 +16,8 @@ const ListPage = async ({ params }: { params: { tokenId: string } }) => {
     <main className="">
       <section className='max-w-[1050px] mx-auto'>
         <div className='my-10 px-4'>
-          <h1 className="text-3xl md:text-4xl xl:text-5xl font-semibold mb-3">Create NFT</h1>
-          <p className='text-xl xl:text-2xl mb-7'>Create and mint your NFT</p>
+          <h1 className="text-3xl md:text-4xl xl:text-5xl font-semibold mb-3">List NFT</h1>
+          <p className='text-xl xl:text-2xl mb-7'>Approve and list your NFT</p>
         </div>
       </section>
       <hr className='border-primary mb-0' />

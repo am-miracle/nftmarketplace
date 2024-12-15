@@ -6,7 +6,7 @@ export default async function CategoryPage({
 }: {
   params: { categoryId: string };
 }) {
-  const { categoryId } = params;
+  const { categoryId } = await params;
 
   return (
     <main className="">

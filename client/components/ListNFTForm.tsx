@@ -37,9 +37,9 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
   const { writeContract: writeMarketContract, data: listingHash } = useWriteContract()
 
   // Transaction receipts
-  const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } = 
+  const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } =
     useWaitForTransactionReceipt({ hash: approvalHash })
-  const { isLoading: isListingLoading, isSuccess: isListingSuccess } = 
+  const { isLoading: isListingLoading, isSuccess: isListingSuccess } =
     useWaitForTransactionReceipt({ hash: listingHash })
 
   // Check if NFT is approved for marketplace
@@ -165,8 +165,8 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
       {/* Category Selection */}
       <div className="space-y-2">
         <Label>Category</Label>
-        <Select 
-          value={formData.category} 
+        <Select
+          value={formData.category}
           onValueChange={(value) => handleFormChange('category', value)}
           required
         >
