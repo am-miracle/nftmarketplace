@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import { CategoryAdded } from '@/types';
 import { NFTListing, TokenMinted } from '@/types/nft';
-import NFTGrid from '@/components/NFTGrid';
+import NFTGrid from '../../../components/NFTGrid';
 
 export default async function CategoryPage({
   params,
