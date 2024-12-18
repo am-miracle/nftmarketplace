@@ -1,11 +1,9 @@
 "use client"
-// components/NFTDetails.tsx
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Earth, ArrowBigRight } from 'lucide-react';
 import CustomButton from '@/components/custom/CustomButton';
-import NFTGrid from '@/components/NFTGrid';
 import { NFTListing, TokenMinted } from '@/types/nft';
 import toast from 'react-hot-toast';
 import AuctionCountdown from './AuctionCountdown';
@@ -13,6 +11,7 @@ import { formatEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { BidModal } from './BidModal';
 import { BuyModal } from './BuyModal';
+import NFTGrid from './NFTGrid';
 
 
 interface NFTMetadata {

@@ -58,7 +58,7 @@ const NFTGrid = ({ data, className }: NFTGridProps) => {
     }, [data.tokenMinteds])
 
     return (
-        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 py-20`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:py-20 lg:py-20`}>
             {data.tokenMinteds.map((nft: TokenMinted) => {
                 const listing = getNFTListingDetails(nft.tokenId)
                 const metadata = nftMetadata[nft.tokenId]

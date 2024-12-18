@@ -1,10 +1,10 @@
 import { getClient } from '@/lib/apollo-client';
 import { GET_CATEGORIES, GET_NFTS_BY_CATEGORY } from '@/lib/queries';
-import NFTGrid from '@/components/NFTGrid';
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import { CategoryAdded } from '@/types';
 import { NFTListing, TokenMinted } from '@/types/nft';
+import NFTGrid from '@/components/NFTGrid';
 
 export default async function CategoryPage({
   params,

@@ -84,7 +84,7 @@ export function ConnectedWallet() {
       <>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full md:w-auto h-[60px] px-5 py-3 text-white bg-accent font-semibold text-xl rounded-[20px] border-none shadow-sm hover:scale-95 ease-in-out duration-300 flex items-center">
+                <Button className="w-full h-[60px] px-5 py-3 text-white bg-accent font-semibold text-xl rounded-[20px] border-none shadow-sm hover:scale-95 ease-in-out duration-300 flex items-center">
                 <span>{ensName || shortenAddress(address)}</span>
                 <ChevronDown size={20} className="h-6 w-6 ml-5" />
                 </Button>
