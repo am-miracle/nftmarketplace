@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { formatEther } from 'viem'
 import NftCard from './NftCard' // Adjust the import path as needed
 import { NFTListing, TokenMinted } from '@/types/nft';
+import PlaceHolder from "../assets/collectibles.svg"
 
 interface NFTGridProps {
     data: {
         tokenMinteds: TokenMinted[],
         itemListeds: NFTListing[] | null,
     }
+    className?: string
 }
 
 interface NFTMetadata {
@@ -19,7 +21,7 @@ interface NFTMetadata {
     attributes: Record<string, string>;
 }
 
-const NFTGrid = ({ data }: NFTGridProps) => {
+const NFTGrid = ({ data, className }: NFTGridProps) => {
     const [nftMetadata, setNftMetadata] = useState<{[key: string]: NFTMetadata}>({})
 
     const getNFTMetadata = async (uri: string): Promise<NFTMetadata | null> => {
@@ -56,7 +58,7 @@ const NFTGrid = ({ data }: NFTGridProps) => {
     }, [data.tokenMinteds])
 
     return (
-        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 py-20`}>
             {data.tokenMinteds.map((nft: TokenMinted) => {
                 const listing = getNFTListingDetails(nft.tokenId)
                 const metadata = nftMetadata[nft.tokenId]
@@ -69,14 +71,14 @@ const NFTGrid = ({ data }: NFTGridProps) => {
                     <Link
                         href={`/nft/${nft.tokenId}`}
                         key={nft.id}
-                        className='my-20'
                     >
                         <NftCard
                             name={metadata?.name || 'Unnamed NFT'}
-                            image={imageUrl}
+                            image={imageUrl || PlaceHolder}
                             price={listing ? Number(formatEther(BigInt(listing.price))) : undefined}
                             owner={listing?.creator || "Shroomie"} // Assuming there's an owner field
                             ownerImage={ownerImage}
+                            className={className}
                         />
                     </Link>
                 )

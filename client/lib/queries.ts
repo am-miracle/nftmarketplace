@@ -71,11 +71,12 @@ export const GET_CATEGORIES: DocumentNode = gql`
   }
 `;
 
-export const GET_CATEGORY_LISTINGS: DocumentNode = gql`
-  query GetCategoryListings($category: String!) {
+export const GET_NFTS_BY_CATEGORY: DocumentNode = gql`
+  query GetNFTsByCategory($categoryId: Bytes!, $first: Int!, $skip: Int!) {
     itemListeds(
-      where: { category: $category }
-      first: 20
+      where: { category: $categoryId }
+      first: $first
+      skip: $skip
       orderBy: timestamp
       orderDirection: desc
     ) {
@@ -151,6 +152,54 @@ export const GET_ALL_NFTS = gql`
       blockNumber
       blockTimestamp
       transactionHash
+    }
+  }
+`
+
+export const GET_NFT_DETAILS = gql`
+  query GetNFTDetails($tokenId: String!) {
+    tokenMinteds(where: { tokenId: $tokenId }, first: 1) {
+      id
+      to
+      tokenId
+      tokenURI
+      royaltyFee
+      blockTimestamp
+      transactionHash
+    }
+    itemListeds(where: { tokenId: $tokenId }, orderBy: blockTimestamp, orderDirection: desc, first: 1) {
+      id
+      seller
+      nftAddress
+      tokenId
+      price
+      isAuction
+      category
+      collectionName
+      creator
+      blockTimestamp
+    }
+  }
+`
+
+export const GET_CREATOR_NFTS = gql`
+  query GetCreatorNFTs($creator: String!, $currentTokenId: String!) {
+    itemListeds(
+      where: { creator: $creator, tokenId_not: $currentTokenId }
+      orderBy: blockTimestamp
+      orderDirection: desc
+      first: 9
+    ) {
+      id
+      seller
+      nftAddress
+      tokenId
+      price
+      isAuction
+      category
+      collectionName
+      creator
+      blockTimestamp
     }
   }
 `

@@ -30,7 +30,7 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
     price: '',
     category: ''
   })
-  const [isApproving, setIsApproving] = useState(false)
+  const [isApproving, setIsApproving] = useState(false);
 
   // Contract write hooks
   const { writeContract: writeNFTContract, data: approvalHash } = useWriteContract()
@@ -43,11 +43,18 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
     useWaitForTransactionReceipt({ hash: listingHash })
 
   // Check if NFT is approved for marketplace
-  const { data: isApproved } = useReadContract({
-    address: NFT_COLLECTION_ADDRESS as `0x${string}`,
-    abi: NFT_COLLECTION_ABI,
-    functionName: 'isApprovedForAll',
-    args: [address as `0x${string}`, MARKETPLACE_ADDRESS as  `0x${string}`],
+  const { data: tokenApproval } = useReadContract({
+      address: NFT_COLLECTION_ADDRESS as `0x${string}`,
+      abi: NFT_COLLECTION_ABI,
+      functionName: 'getApproved',
+      args: [tokenId]
+  })
+
+  const { data: isApprovedForAll } = useReadContract({
+      address: NFT_COLLECTION_ADDRESS as `0x${string}`,
+      abi: NFT_COLLECTION_ABI,
+      functionName: 'isApprovedForAll',
+      args: [address as `0x${string}`, MARKETPLACE_ADDRESS as `0x${string}`]
   })
 
   // Handle approval success
@@ -74,12 +81,22 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
   const handleApprove = async () => {
     try {
       setIsApproving(true)
-      await writeNFTContract({
-        address: NFT_COLLECTION_ADDRESS as `0x${string}`,
-        abi: NFT_COLLECTION_ABI,
-        functionName: 'setApprovalForAll',
-        args: [MARKETPLACE_ADDRESS as `0x${string}`, true],
-      })
+        await writeNFTContract({
+            address: NFT_COLLECTION_ADDRESS as `0x${string}`,
+            abi: NFT_COLLECTION_ABI,
+            functionName: 'approve',
+            args: [MARKETPLACE_ADDRESS as `0x${string}`, tokenId],
+            gas: BigInt(100000)
+        })
+
+        // Then set approval for all
+        await writeNFTContract({
+            address: NFT_COLLECTION_ADDRESS as `0x${string}`,
+            abi: NFT_COLLECTION_ABI,
+            functionName: 'setApprovalForAll',
+            args: [MARKETPLACE_ADDRESS as `0x${string}`, true],
+            gas: BigInt(100000)
+        })
     } catch (error: Error | unknown) {
       console.error('Error approving NFT:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to approve NFT')
@@ -97,7 +114,7 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
 
     try {
       const priceInWei = parseEther(formData.price)
-      const categoryBytes = formData.category as `0x${string}`
+      const categoryBytes = formData.category.padEnd(66, '0') as `0x${string}`
       const isAuction = formData.listingType === 'auction'
 
       await writeMarketContract({
@@ -111,12 +128,14 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
           isAuction,
           categoryBytes,
         ],
+        gas: BigInt(300000),
       })
     } catch (error: Error | unknown) {
       console.error('Error listing NFT:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to list NFT')
     }
   }
+
 
   const handleFormChange = (field: keyof ListingFormData, value: string) => {
     setFormData(prev => ({
@@ -188,24 +207,25 @@ const ListNFTForm: React.FC<ListNFTFormProps> = ({ tokenId, categories }) => {
       </div>
 
       {/* Approval Button (if not approved) */}
-      {!isApproved && (
-        <CustomButton
-          type="button"
-          title="Approve NFT for Marketplace"
-          onClick={handleApprove}
-          isLoading={isApproving || isApprovalLoading}
-          isDisabled={!address}
-          className="w-full bg-accent h-12"
-        />
+      {/* Show approval button if neither approval type is active */}
+      {(!isApprovedForAll && tokenApproval !== MARKETPLACE_ADDRESS) && (
+          <CustomButton
+              type="button"
+              title="Approve NFT for Marketplace"
+              onClick={handleApprove}
+              isLoading={isApproving || isApprovalLoading}
+              isDisabled={!address}
+              className="w-full bg-accent h-12"
+          />
       )}
 
       {/* Submit Button */}
       <CustomButton
-        type="submit"
-        title={isListingLoading ? 'Listing...' : 'List NFT'}
-        isLoading={isListingLoading}
-        isDisabled={(!isApproved && !isApprovalSuccess) || !address}
-        className="w-full bg-accent h-12"
+          type="submit"
+          title={isListingLoading ? 'Listing...' : 'List NFT'}
+          isLoading={isListingLoading}
+          isDisabled={(!isApprovedForAll && tokenApproval !== MARKETPLACE_ADDRESS) || !address}
+          className="w-full bg-accent h-12"
       />
     </form>
   )

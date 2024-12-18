@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 import { getClient } from '@/lib/apollo-client'
 import { GET_ALL_NFTS } from '@/lib/queries'
 import { LoadingGrid } from '../loading'
-import NFTGrid from '../NFTGrid'
+import NFTGrid from "../NFTGrid"
 
 const DiscoverMore = async () => {
   const { data } = await getClient().query({
@@ -24,7 +24,7 @@ const DiscoverMore = async () => {
             <h1 className='text-4xl font-bold'>Discover More NFTs</h1>
             <p>Explore new trending NFTs</p>
           </div>
-          <Link href={"/nft"} className='hidden md:block'>
+          <Link href={"/marketplace"} className='hidden md:block'>
             <CustomButton
               type='button'
               title='See All'
@@ -37,6 +37,7 @@ const DiscoverMore = async () => {
           <Suspense fallback={<LoadingGrid />}>
             <NFTGrid
               data={data}
+              className='bg-secondary'
             />
           </Suspense>
         </div>

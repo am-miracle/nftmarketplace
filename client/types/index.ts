@@ -44,18 +44,8 @@ export interface CategoryAdded {
   category: string;
   name: string;
   timestamp: string;
-  
 }
 
-export interface NFTListing {
-  id: string;
-  seller: string;
-  nftAddress: string;
-  tokenId: string;
-  price: string;
-  category: string;
-  collectionName: string;
-}
 
 export type NFTCollectionAbi = Abi & {
   mint: (to: string, tokenURI: string, royaltyFee: number) => void;

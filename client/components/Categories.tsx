@@ -18,13 +18,12 @@ import MusicNotes from "../assets/MusicNotes.svg"
 import PainBrush from "../assets/PaintBrush.svg"
 import VideoCamera from "../assets/VideoCamera.svg"
 import Swatches from "../assets/Swatches.svg"
-import { GET_CATEGORIES, GET_CATEGORY_LISTINGS } from '@/lib/queries';
+import { GET_CATEGORIES } from '@/lib/queries';
 import { getClient } from '@/lib/apollo-client';
-import { CategoryAdded, NFTListing } from '@/types';
+import { CategoryAdded } from '@/types';
 
 
 
-// Categories List Component
 export const CategoriesList = async () => {
   const { data } = await getClient().query({
     query: GET_CATEGORIES,
@@ -37,7 +36,7 @@ export const CategoriesList = async () => {
     {categories.map((cat: CategoryAdded, index: number) => (
         <Link
             key={cat.id}
-            href={`/categories/${cat.category}`}
+            href={`/category/${cat.category}`}
         >
             <Card className='p-0 border-0 rounded-[20px] overflow-hidden bg-secondary
             hover:scale-95 ease-in-out duration-300'>
@@ -104,58 +103,3 @@ const images = [
         img: Photography,
     },
 ]
-
-// Category Listings Component
-export const CategoryListings = async ({ categoryId }: { categoryId: string }) => {
-  const { data } = await getClient().query({
-    query: GET_CATEGORY_LISTINGS,
-    variables: {
-      category: categoryId,
-    },
-  });
-
-    const listings = data.itemListeds || [];
-    
-    console.log(listings)
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {listings.map((listing: NFTListing) => (
-        <Link
-          key={listing.id}
-          href={`/nft/${listing.nftAddress}/${listing.tokenId}`}
-          className="block"
-        >
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-              <Image
-                src="/api/placeholder/200/200"
-                alt={`${listing.collectionName} #${listing.tokenId}`}
-                width={100}
-                height={100}
-                className="w-full h-full object-cover"
-                style={{width: "auto", height: "auto"}}
-              />
-            </div>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">
-                {listing.collectionName} #{listing.tokenId}
-              </h3>
-              <p className="text-sm mb-2 text-gray-600">
-                {Number(listing.price) / 1e18} ETH
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                Seller: {listing.seller}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
-      {listings.length === 0 && (
-        <div className="col-span-full text-center py-8 text-gray-500">
-          No NFTs listed in this category yet
-        </div>
-      )}
-    </div>
-  );
-};

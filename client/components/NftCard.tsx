@@ -7,7 +7,8 @@ interface NftProps {
     price?: number;
     owner?: string;
     ownerImage?: string;
-    highestBid?: number;
+  highestBid?: number;
+  className?: string;
 }
 
 const NftCard = ({
@@ -16,24 +17,25 @@ const NftCard = ({
     price,
     owner,
     ownerImage,
-    highestBid
+    highestBid,
+    className
 }: NftProps) => {
   return (
-    <div className="bg-secondary text-foreground rounded-[20px] shadow-lg overflow-hidden w-full transform transition-all duration-300 hover:scale-95 hover:shadow-2xl">
+    <div className={"text-foreground rounded-[20px] overflow-hidden w-full transform transition-all duration-300 hover:scale-95"}>
       {/* NFT Image */}
-      <div className="relative mb-3">
+      <div className="relative">
         <Image
             src={image}
             alt={name}
             width={100}
             height={100}
-            className="min-h-[295px] min-w-full object-cover"
+            className="min-h-[295px] max-h-[238px] xl:max-h-[295px] min-w-full object-cover"
             style={{width: "auto", height: "auto"}}
         />
       </div>
 
       {/* Card Content */}
-      <div className="p-5">
+      <div className={`py-6 px-5 bg-background ${className}`}>
         {/* NFT Name */}
         <h3 className="text-2xl font-semibold mb-2 truncate">
           {name}

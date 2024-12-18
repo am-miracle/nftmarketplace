@@ -23,6 +23,9 @@ export interface NFTListing {
   collectionName: string
   creator: string
   blockTimestamp: string
+  auctionEndTime?: string;
+  highestBidder?: string;
+  highestBid?: string;
 }
 
 export interface NFTListingsResponse {

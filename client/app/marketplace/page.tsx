@@ -11,14 +11,14 @@ import NFTGrid from '@/components/NFTGrid';
     const { data } = await getClient().query({
         query: GET_ALL_NFTS,
         variables: {
-            first: 100,
+            first: 12,
             skip: 0,
         },
     });
   return (
     <main className="">
       <section className='max-w-[1050px] mx-auto'>
-        <div className='my-10 px-4'>
+        <div className='my-10 px-8 md:px-11 lg:px-36 xl:px-0'>
           <h1 className="text-3xl md:text-4xl xl:text-5xl font-semibold mb-3">Browse Marketplace</h1>
           <p className='text-xl xl:text-2xl mb-7'>Browse through more than 50k NFTs on the NFT Marketplace.</p>
           <SearchNft />
@@ -42,10 +42,10 @@ import NFTGrid from '@/components/NFTGrid';
           </TabsTrigger>
         </TabsList>
         <TabsContent value="nft" className='bg-secondary h-full border-b border-background'>
-          <div className='max-w-[1050px] mx-auto'>
+          <div className='max-w-[1050px] mx-auto px-8 md:px-11 lg:px-36 xl:px-0 py-20 md:py-0'>
               <Suspense fallback={<LoadingGrid />}>
                 <NFTGrid
-                    data={data}
+                  data={data}
                 />
             </Suspense>
           </div>

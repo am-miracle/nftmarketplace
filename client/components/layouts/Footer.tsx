@@ -12,7 +12,7 @@ const Footer = () => {
   return (
       <footer className='bg-secondary px-8 py-10 md:px-11 lg:px-36 text-primary-foreground'>
           <div className='max-w-[1050px] mx-auto'>
-            <section className='grid lg:grid-cols-3 gap-8'>
+            <section className='grid xl:grid-cols-3 gap-8'>
                 <div className='md:w-1/2 lg:w-auto'>
                     <span className='text-2xl font-bold mb-8 flex items-center gap-2'>
                         <Image

@@ -1,37 +1,51 @@
-import Link from 'next/link';
-import CustomButton from '@/components/custom/CustomButton';
-import { ArrowBigRight } from 'lucide-react';
+import NFTDetails from '@/components/NFTDetails';
+import { getClient } from '@/lib/apollo-client';
+import { GET_CREATOR_NFTS, GET_NFT_DETAILS } from '@/lib/queries';
+import { Loader2 } from 'lucide-react';
 
+export default async function NFTDetailPage({
+  params,
+}: {
+  params: { tokenId: string };
+}) {
+  const { tokenId } = await params;
 
-  export default async function NFTDetailPage() {
+  try {
+    // Fetch NFT details
+    const { data } = await getClient().query({
+      query: GET_NFT_DETAILS,
+      variables: { tokenId },
+    });
 
-  return (
-    <main className="">
-      
-        <div className='max-w-[1050px] mx-auto'>
-            <div className='flex items-center justify-between'>
-            <h1 className='text-4xl font-bold mb-12'>More from this artist</h1>
-            <Link href={"/creators/creator"} className='hidden md:block'>
-                <CustomButton
-                type='button'
-                title='Go To Artist Page'
-                className='bg-background border-2 border-solid border-accent mb-7 h-[60px] text-base'
-                icon={<ArrowBigRight size={20} className="mr-3" />}
-                />
-            </Link>
-            </div>
-        <div>
-
+    if (!data.tokenMinteds[0]) {
+      return (
+        <div className="flex justify-center items-center min-h-[400px]">
+          <p className="text-xl">NFT not found</p>
         </div>
-            <Link href={"/creators/creator"} className='block md:hidden'>
-                <CustomButton
-                    type='button'
-                    title='Go To Artist Page'
-                    className='bg-background border-2 border-solid border-accent mb-7 h-[60px] text-base w-full'
-                    icon={<ArrowBigRight size={20} className="mr-3" />}
-                />
-            </Link>
-        </div>
-    </main>
-  );
+      );
+    }
+
+    // Fetch creator's other NFTs
+    const { data: creatorData } = await getClient().query({
+      query: GET_CREATOR_NFTS,
+      variables: {
+        creator: data.itemListeds[0]?.creator || "0x1360eDa247bF2fEfeCc5FD5926aC1EF628b19733",
+        currentTokenId: tokenId,
+      },
+    });
+
+    return (
+      <NFTDetails
+        nftData={data}
+        creatorData={creatorData}
+      />
+    );
+  } catch (error) {
+    console.error('Error fetching NFT details:', error);
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 }
