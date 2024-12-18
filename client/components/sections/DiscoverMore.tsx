@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 import { getClient } from '@/lib/apollo-client'
 import { GET_ALL_NFTS } from '@/lib/queries'
 import { LoadingGrid } from '../loading'
-import NFTGrid from "../NFTGrid"
+import NFTGrid from "../../components/NFTGrid"
 
 const DiscoverMore = async () => {
   const { data } = await getClient().query({

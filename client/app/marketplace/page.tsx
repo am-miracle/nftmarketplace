@@ -4,7 +4,7 @@ import SearchNft from './SearchNft';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getClient } from '@/lib/apollo-client';
 import { GET_ALL_NFTS } from '@/lib/queries';
-import NFTGrid from '@/components/NFTGrid';
+import NFTGrid from '../../components/NFTGrid';
 
 
   export default async function MarketplacePage() {
