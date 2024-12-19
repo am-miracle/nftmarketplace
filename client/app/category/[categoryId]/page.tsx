@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import { CategoryAdded } from '@/types';
 import { NFTListing, TokenMinted } from '@/types/nft';
-import NFTGrid from '../../../components/NFTGrid';
+import { NftGrid } from '@/components/NftGrid';
 
 export default async function CategoryPage({
   params,
@@ -58,7 +58,7 @@ export default async function CategoryPage({
           </div>
         }>
           {nftResponse.data.tokenMinteds > 0 ? (
-            <NFTGrid
+            <NftGrid
               data={{
                 tokenMinteds: nftResponse.data.tokenMinteds.filter((nft: TokenMinted) => {
                   // Find if this NFT has a listing in the current category

@@ -11,7 +11,7 @@ import { formatEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { BidModal } from './BidModal';
 import { BuyModal } from './BuyModal';
-import NFTGrid from './NFTGrid';
+import { NftGrid } from './NftGrid';
 
 
 interface NFTMetadata {
@@ -233,7 +233,7 @@ const NFTDetails = ({ nftData, creatorData }: NFTDetailsProps) => {
             </Link>
           </div>
           <div>
-            <NFTGrid data={{ tokenMinteds: creatorData.tokenMinteds, itemListeds: creatorData.itemListeds }} />
+            <NftGrid data={{ tokenMinteds: creatorData.tokenMinteds, itemListeds: creatorData.itemListeds }} />
           </div>
           <Link href={`/creator/${listing?.creator}`} className='block md:hidden mb-7'>
             <CustomButton

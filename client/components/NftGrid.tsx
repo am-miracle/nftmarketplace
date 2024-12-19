@@ -21,7 +21,7 @@ interface NFTMetadata {
     attributes: Record<string, string>;
 }
 
-const NFTGrid = ({ data, className }: NFTGridProps) => {
+export const NftGrid = ({ data, className }: NFTGridProps) => {
     const [nftMetadata, setNftMetadata] = useState<{[key: string]: NFTMetadata}>({})
 
     const getNFTMetadata = async (uri: string): Promise<NFTMetadata | null> => {
@@ -87,4 +87,4 @@ const NFTGrid = ({ data, className }: NFTGridProps) => {
     )
 }
 
-export default NFTGrid
+// export default NftGrid

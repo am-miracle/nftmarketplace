@@ -4,7 +4,7 @@ import SearchNft from './SearchNft';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getClient } from '@/lib/apollo-client';
 import { GET_ALL_NFTS } from '@/lib/queries';
-import NFTGrid from '../../components/NFTGrid';
+import { NftGrid } from '@/components/NftGrid';
 
 
   export default async function MarketplacePage() {
@@ -44,7 +44,7 @@ import NFTGrid from '../../components/NFTGrid';
         <TabsContent value="nft" className='bg-secondary h-full border-b border-background'>
           <div className='max-w-[1050px] mx-auto px-8 md:px-11 lg:px-36 xl:px-0 py-20 md:py-0'>
               <Suspense fallback={<LoadingGrid />}>
-                <NFTGrid
+                <NftGrid
                   data={data}
                 />
             </Suspense>
